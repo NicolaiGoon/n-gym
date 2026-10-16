@@ -13,19 +13,23 @@ export default function AppTabs() {
       indicatorColor={colors.backgroundElement}
       labelStyle={{ selected: { color: colors.text } }}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/home.png')}
-          renderingMode="template"
-        />
+        <NativeTabs.Trigger.Label>Workout</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="dumbbell" md="fitness_center" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
-          renderingMode="template"
-        />
+      <NativeTabs.Trigger name="history">
+        <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="calendar" md="history" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="exercises">
+        <NativeTabs.Trigger.Label>Exercises</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="list.bullet" md="list" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="coach">
+        <NativeTabs.Trigger.Label>Coach</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="sparkles" md="auto_awesome" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

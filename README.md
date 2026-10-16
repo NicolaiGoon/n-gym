@@ -1,56 +1,47 @@
-# Welcome to your Expo app 👋
+# n-gym
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A personal workout tracker for Android: Jefit-style logging without the social features, with
+progression built in, Jefit history import, and an on-device AI coach.
 
-## Get started
+## Plan
 
-1. Install dependencies
+| Area | Choice |
+| --- | --- |
+| App | React Native + Expo (SDK 58), Expo Router, TypeScript. Android first. |
+| Data | SQLite on the device via `expo-sqlite` + Drizzle ORM. Offline, no account. |
+| Progression | `src/progression`: pure TypeScript, unit tested. Double progression, linear with deloads, RPE-based. |
+| Jefit import | CSV parser that maps Jefit exercise names to the library (needs a sample export). |
+| Coach | On-device LLM through `llama.rn` (llama.cpp). The model proposes changes as tool calls; the app shows a preview and only writes after you approve. |
+| MCP | Not in v1. Coach tools use MCP-style JSON schemas so a desktop MCP server can expose them later. |
 
-   ```bash
-   npm install
-   ```
+## Layout
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/app/           screens (Expo Router tabs: Workout, History, Exercises, Coach)
+src/components/    shared UI
+src/db/            Drizzle schema, client, migrations runner, seed data, queries
+src/progression/   progression engine and stats (no React Native imports)
+drizzle/           generated SQL migrations
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Running it
 
-### Other setup steps
+```bash
+npm install
+npm test               # progression engine tests
+npm run typecheck
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The app uses native modules (SQLite now, llama.cpp later), so it runs in a development build
+rather than Expo Go:
 
-## Learn more
+```bash
+npx expo run:android   # needs Android Studio / SDK and a phone over USB or an emulator
+# or build an installable APK in the cloud, no Android Studio needed:
+npm run android:apk
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Changing the database
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Edit `src/db/schema.ts`, then run `npm run db:generate` and commit the new files in `drizzle/`.
+Migrations run automatically on app start.
