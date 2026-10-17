@@ -8,6 +8,27 @@
       "when": 1792188910710,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792222873888,
+      "tag": "0001_routine_start_weight",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792223291484,
+      "tag": "0002_workout_exercises",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792225521634,
+      "tag": "0003_jefit_import",
+      "breakpoints": true
     }
   ]
 }

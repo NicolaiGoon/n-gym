@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 
 import migrations from '../../drizzle/migrations';
+import { runAutoBackupIfDue } from '@/backup/files';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
@@ -18,7 +19,10 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!success) return;
     seedIfEmpty(db)
-      .then(() => setSeeded(true))
+      .then(() => {
+        setSeeded(true);
+        runAutoBackupIfDue();
+      })
       .catch(setSeedError);
   }, [success]);
 
