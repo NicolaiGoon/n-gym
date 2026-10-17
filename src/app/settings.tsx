@@ -17,6 +17,7 @@ import { Chips } from '@/components/ui/chips';
 import { NumberField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { db } from '@/db/client';
+import { getDeloadEvery, setDeloadEvery } from '@/db/repo/deload';
 import { getSettings, updateSettings, type WeightUnit } from '@/db/repo/settings';
 import { useDb, write } from '@/db/use-db';
 
@@ -38,10 +39,15 @@ export default function SettingsScreen() {
   const [initial] = useState(() => getSettings(db));
   const [unit, setUnit] = useState<WeightUnit>(initial.unit);
   const [increment, setIncrement] = useState(String(initial.defaultIncrement));
+  const [deloadEvery, setDeloadEveryText] = useState(() => String(getDeloadEvery(db)));
   const autoBackup = useDb(() => autoBackupStatus());
 
   const save = () => {
-    if (write((db) => updateSettings(db, { unit, defaultIncrement: Number(increment) }))) router.back();
+    const ok = write((db) => {
+      setDeloadEvery(db, Number(deloadEvery || 0));
+      updateSettings(db, { unit, defaultIncrement: Number(increment) });
+    });
+    if (ok) router.back();
   };
 
   const restore = () =>
@@ -62,6 +68,10 @@ export default function SettingsScreen() {
         Changing the unit relabels weights; it doesn’t convert numbers you’ve already entered.
       </ThemedText>
       <NumberField label={`Default increment for new exercises (${unit})`} value={increment} onChangeValue={setIncrement} />
+      <NumberField label="Suggest a deload week every N weeks (0 = off)" value={deloadEvery} onChangeValue={setDeloadEveryText} />
+      <ThemedText type="small" themeColor="textSecondary">
+        A deload is also suggested when 3 or more lifts stall.
+      </ThemedText>
       <Button title="Save" onPress={save} />
 
       <ThemedText type="smallBold" style={styles.section}>

@@ -9,10 +9,12 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Chips } from '@/components/ui/chips';
 import { Spacing } from '@/constants/theme';
+import { exerciseHistory } from '@/db/queries';
 import { getExercise } from '@/db/repo/exercises';
 import { getSettings } from '@/db/repo/settings';
 import { exerciseRecords, exerciseSessions, type SessionPoint } from '@/db/stats';
 import { useDb } from '@/db/use-db';
+import { isStalled } from '@/progression';
 
 type Metric = 'oneRepMax' | 'topWeight' | 'volume';
 
@@ -48,6 +50,7 @@ export default function ExerciseStatsScreen() {
   const id = Number(useLocalSearchParams<{ id: string }>().id);
   const exercise = useDb((db) => getExercise(db, id));
   const sessions = useDb((db) => exerciseSessions(db, id));
+  const stalled = useDb((db) => isStalled(exerciseHistory(db, id)));
   const { unit } = useDb(getSettings);
   const [metric, setMetric] = useState<Metric>('oneRepMax');
 
@@ -63,6 +66,11 @@ export default function ExerciseStatsScreen() {
         <ThemedText themeColor="textSecondary">No logged sessions yet.</ThemedText>
       ) : (
         <>
+          {stalled ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              ⚠ Stalled: your best estimated 1RM hasn’t improved over the last 3 sessions.
+            </ThemedText>
+          ) : null}
           <View style={styles.records}>
             {records.bestOneRepMax ? (
               <Record

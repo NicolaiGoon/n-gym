@@ -1,3 +1,4 @@
+import { topBackoffProgression, waveProgression } from './advanced';
 import type {
   DoubleProgressionRule,
   ExerciseSession,
@@ -27,6 +28,10 @@ export function suggestNext(
       return linearProgression(rule, sessions, startWeight);
     case 'rpe':
       return rpeProgression(rule, sessions, startWeight);
+    case 'wave':
+      return waveProgression(rule, sessions.length);
+    case 'topBackoff':
+      return topBackoffProgression(rule, sessions.at(-1), startWeight);
   }
 }
 
