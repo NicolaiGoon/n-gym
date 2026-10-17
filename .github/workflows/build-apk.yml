@@ -1,0 +1,43 @@
+name: Build APK
+
+# Manual only: Actions → Build APK → Run workflow. Download the APK from the run's Artifacts.
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Unlike CI, this lets llama.rn download its native libraries, which the APK needs.
+      - run: npm ci
+
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --no-install
+
+      # A release build bundles the JavaScript, so the app runs without a dev server.
+      # It is signed with the debug key, which is fine for installing on your own phone.
+      # Only arm64-v8a is built, which covers modern phones and halves the native build time.
+      - name: Build
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: n-gym-${{ github.sha }}
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
