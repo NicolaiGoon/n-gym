@@ -1,30 +1,25 @@
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { FlatList, StyleSheet } from 'react-native';
 
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { db } from '@/db/client';
-import { routines } from '@/db/schema';
+import { listWorkouts } from '@/db/queries';
+import { useDb } from '@/db/use-db';
 
-export default function WorkoutScreen() {
-  const { data } = useLiveQuery(db.select().from(routines));
+export default function HistoryScreen() {
+  const data = useDb((db) => listWorkouts(db).all());
 
   return (
-    <Screen title="Workout">
+    <Screen title="History">
       <FlatList
         data={data}
-        keyExtractor={(r) => String(r.id)}
+        keyExtractor={(w) => String(w.id)}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <ThemedText themeColor="textSecondary">
-            No routines yet. Create one here, import from Jefit, or ask the Coach to build one.
-          </ThemedText>
-        }
+        ListEmptyComponent={<ThemedText themeColor="textSecondary">No finished workouts yet.</ThemedText>}
         renderItem={({ item }) => (
           <ThemedView type="backgroundElement" style={styles.card}>
-            <ThemedText type="smallBold">{item.name}</ThemedText>
+            <ThemedText type="smallBold">{item.startedAt.toLocaleDateString()}</ThemedText>
             {item.notes ? <ThemedText type="small">{item.notes}</ThemedText> : null}
           </ThemedView>
         )}

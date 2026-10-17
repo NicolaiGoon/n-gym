@@ -52,6 +52,8 @@ export const routineExercises = sqliteTable('routine_exercises', {
     .references(() => exercises.id),
   position: integer('position').notNull(),
   rule: text('rule', { mode: 'json' }).$type<ProgressionRule>().notNull(),
+  /** Weight for the first session, before there is any history. */
+  startWeight: real('start_weight').notNull().default(0),
   restSeconds: integer('rest_seconds').notNull().default(120),
 });
 

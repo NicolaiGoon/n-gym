@@ -1,0 +1,1 @@
+ALTER TABLE `routine_exercises` ADD `start_weight` real DEFAULT 0 NOT NULL;
