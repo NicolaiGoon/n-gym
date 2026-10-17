@@ -19,6 +19,8 @@ export const exercises = sqliteTable('exercises', {
   defaultIncrement: real('default_increment').notNull().default(2.5),
   /** Where the exercise came from: 'builtin', 'user' or 'jefit'. */
   source: text('source').notNull().default('builtin'),
+  /** Free-text notes, e.g. setup cues. */
+  notes: text('notes'),
   createdAt: createdAt(),
 });
 
@@ -28,6 +30,8 @@ export const routines = sqliteTable('routines', {
   name: text('name').notNull(),
   notes: text('notes'),
   archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+  /** Id in the app it was imported from (e.g. "jefit:5"), so a second import skips it. */
+  externalId: text('external_id'),
   createdAt: createdAt(),
 });
 
@@ -65,6 +69,8 @@ export const workouts = sqliteTable('workouts', {
   finishedAt: integer('finished_at', { mode: 'timestamp' }),
   notes: text('notes'),
   source: text('source').notNull().default('app'),
+  /** Id in the app it was imported from (e.g. "jefit:812"), so a second import skips it. */
+  externalId: text('external_id'),
 });
 
 /** An exercise performed in a workout, in order. Created at start from the routine day, or added ad hoc. */
@@ -121,4 +127,15 @@ export const workoutSets = sqliteTable(
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
+});
+
+/** Body weight and measurements on a date. Lengths are in the user's length unit (cm or in). */
+export const bodyMeasurements = sqliteTable('body_measurements', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  measuredAt: integer('measured_at', { mode: 'timestamp' }).notNull(),
+  weight: real('weight'),
+  bodyFat: real('body_fat'),
+  /** Circumferences by name, e.g. { chest: 113, waist: 80 }. */
+  measurements: text('measurements', { mode: 'json' }).$type<Record<string, number>>(),
+  source: text('source').notNull().default('app'),
 });

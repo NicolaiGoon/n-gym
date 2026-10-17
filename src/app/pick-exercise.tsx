@@ -8,13 +8,15 @@ import type { Database } from '@/db/types';
 import { addExerciseToDay } from '@/db/repo/routines';
 import { addExerciseToWorkout, swapWorkoutExercise } from '@/db/repo/workouts';
 import { write } from '@/db/use-db';
+import { setJefitChoice } from '@/import/jefit/files';
 
 /**
- * Picks an exercise for one of three purposes, chosen by the route param:
- * `dayId` adds it to a routine day, `workoutId` adds it to the workout, `swapId` replaces a workout exercise.
+ * Picks an exercise for one of four purposes, chosen by the route param:
+ * `dayId` adds it to a routine day, `workoutId` adds it to the workout, `swapId` replaces a workout exercise,
+ * `jefitKey` matches a Jefit exercise to it for the import.
  */
 export default function PickExerciseScreen() {
-  const params = useLocalSearchParams<{ dayId?: string; workoutId?: string; swapId?: string }>();
+  const params = useLocalSearchParams<{ dayId?: string; workoutId?: string; swapId?: string; jefitKey?: string }>();
 
   const pick = (exerciseId: number) => (db: Database) => {
     if (params.swapId) swapWorkoutExercise(db, Number(params.swapId), exerciseId);
@@ -27,7 +29,10 @@ export default function PickExerciseScreen() {
       <View style={styles.inner}>
         <ExerciseList
           onSelect={(exercise) => {
-            if (write(pick(exercise.id))) router.back();
+            if (params.jefitKey) {
+              setJefitChoice(params.jefitKey, { type: 'existing', exerciseId: exercise.id });
+              router.back();
+            } else if (write(pick(exercise.id))) router.back();
           }}
         />
       </View>

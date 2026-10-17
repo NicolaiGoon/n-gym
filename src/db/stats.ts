@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 
 import { estimateOneRepMax } from '@/progression';
 
-import { exercises, routineDays, workouts, workoutSets } from './schema';
+import { bodyMeasurements, exercises, routineDays, workouts, workoutSets } from './schema';
 import type { Database } from './types';
 
 /**
@@ -257,4 +257,15 @@ export function workoutDaysInMonth(db: Database, year: number, month: number): M
 export function dayKey(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Recorded body weights, oldest first. */
+export function bodyWeights(db: Database): { date: Date; value: number }[] {
+  return db
+    .select({ date: bodyMeasurements.measuredAt, value: bodyMeasurements.weight })
+    .from(bodyMeasurements)
+    .where(isNotNull(bodyMeasurements.weight))
+    .orderBy(asc(bodyMeasurements.measuredAt))
+    .all()
+    .map((r) => ({ date: r.date, value: r.value! }));
 }

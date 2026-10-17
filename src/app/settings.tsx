@@ -12,6 +12,7 @@ import {
 } from '@/backup/files';
 import { pickChangeFile, setPendingChanges } from '@/coach/change-files';
 import { Page } from '@/components/page';
+import { pickJefitExport } from '@/import/jefit/files';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Chips } from '@/components/ui/chips';
@@ -67,6 +68,11 @@ export default function SettingsScreen() {
       router.push('/import-changes');
     });
 
+  const importJefit = () =>
+    attempt(async () => {
+      if (await pickJefitExport()) router.push('/import-jefit');
+    });
+
   return (
     <Page>
       <ThemedText type="small" themeColor="textSecondary">
@@ -108,6 +114,15 @@ export default function SettingsScreen() {
         />
         {autoBackup.folder ? <Button title="Turn off" variant="danger" onPress={turnOffAutoBackup} /> : null}
       </View>
+
+      <ThemedText type="smallBold" style={styles.section}>
+        Import from Jefit
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        Bring over your Jefit history, routines, body measurements and exercise notes from a Jefit export file. You see
+        a preview first, and importing the same file again adds nothing twice.
+      </ThemedText>
+      <Button title="Choose Jefit export" variant="secondary" onPress={importJefit} />
 
       <ThemedText type="smallBold" style={styles.section}>
         Desktop coach
