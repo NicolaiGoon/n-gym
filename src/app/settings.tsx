@@ -10,6 +10,7 @@ import {
   setPendingRestore,
   turnOffAutoBackup,
 } from '@/backup/files';
+import { pickChangeFile, setPendingChanges } from '@/coach/change-files';
 import { Page } from '@/components/page';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,14 @@ export default function SettingsScreen() {
       router.push('/restore');
     });
 
+  const importChanges = () =>
+    attempt(async () => {
+      const file = await pickChangeFile();
+      if (!file) return;
+      setPendingChanges(file);
+      router.push('/import-changes');
+    });
+
   return (
     <Page>
       <ThemedText type="small" themeColor="textSecondary">
@@ -99,6 +108,15 @@ export default function SettingsScreen() {
         />
         {autoBackup.folder ? <Button title="Turn off" variant="danger" onPress={turnOffAutoBackup} /> : null}
       </View>
+
+      <ThemedText type="smallBold" style={styles.section}>
+        Desktop coach
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        A coach on your computer (through the n-gym MCP server) reads your backup and saves the changes it suggests to
+        a change file. Import that file to review and approve them here.
+      </ThemedText>
+      <Button title="Import coach changes" variant="secondary" onPress={importChanges} />
     </Page>
   );
 }
