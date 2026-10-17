@@ -96,15 +96,24 @@ Done when: progress on any lift can be read at a glance.
 
 ## Phase 6: Jefit import
 
-Goal: bring the full Jefit history over. Needs a sample Jefit export to start.
+Goal: bring the full Jefit history over (about 930 workouts from 2016 to now, in the sample export).
+The file format is described in [jefit-export-format.md](jefit-export-format.md).
 
-- Parse the Jefit CSV export (format confirmed against the sample).
-- Match Jefit exercise names to the library automatically, with a screen to fix or create the ones
-  that don't match; remember the choices.
-- Preview before import (number of workouts, sets, date range); import is repeatable without making
-  duplicates.
-- Imported workouts are marked with `source = 'jefit'`.
-- Parser tests use a trimmed copy of the real export.
+- Parser for Jefit's sectioned export: split on `### SECTION ###` headers, then on blank-line
+  blocks that each carry their own header row.
+- Workouts from WORKOUT SESSIONS (start and end times), sets from the `logs` column of EXERCISE LOGS
+  (`weightxreps`, in the unit from SETTING). EXERCISE SET LOGS only covers recent workouts, so it is
+  used only to cross-check.
+- Exercises matched by Jefit id, not by name, since one id can carry several names over the years.
+  Custom exercises are created from CUSTOM EXERCISES. A matching screen lets you map Jefit
+  exercises to library ones or create new ones; the choices are remembered.
+- Routines (routines, days and their exercises with sets, reps and rest) imported as n-gym routines.
+- Also imported: body measurements (PROFILE), exercise notes (NOTES). Cardio, favorites and records
+  are skipped (records are recomputed from the history).
+- Preview before import (workouts, sets, date range, unmatched exercises); importing the same file
+  again adds nothing twice. Imported rows are marked with `source = 'jefit'`.
+- Parser tests use a small made-up fixture with the same structure and quirks (trailing commas,
+  bodyweight sets, renamed exercises, non-English notes). The real export is never committed.
 
 Done when: the full Jefit history appears in History and drives progression suggestions.
 
