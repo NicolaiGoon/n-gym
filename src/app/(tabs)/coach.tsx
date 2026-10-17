@@ -1,94 +1,63 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { runAction, toolDefinitions, type ActionOutcome } from '@/coach';
-import { EXAMPLE_INPUTS } from '@/coach/examples';
-import { ProposalCard } from '@/components/coach/proposal-card';
+import { isDownloaded } from '@/coach/llama';
+import { COACH_MODELS, type CoachModel } from '@/coach/models';
+import { CoachChat } from '@/components/coach/chat';
+import { ModelSetup } from '@/components/coach/model-setup';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
-import { Chips } from '@/components/ui/chips';
-import { TextField } from '@/components/ui/text-field';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { db } from '@/db/client';
+import { getSetting, setSetting } from '@/db/repo/settings';
 
-const TOOLS = toolDefinitions();
-const example = (name: string) => JSON.stringify(EXAMPLE_INPUTS[name] ?? {}, null, 2);
+const MODEL_KEY = 'coachModel';
 
-/**
- * Until the on-device model arrives, the Coach tab is a console for the actions it will use:
- * pick one, edit its JSON input and run it. Reads show their result; changes show a proposal
- * that writes nothing until approved.
- */
+function savedModel(): CoachModel | null {
+  const model = COACH_MODELS.find((m) => m.id === getSetting(db, MODEL_KEY));
+  return model && isDownloaded(model) ? model : null;
+}
+
 export default function CoachScreen() {
-  const [name, setName] = useState(TOOLS[0].name);
-  const [input, setInput] = useState(() => example(TOOLS[0].name));
-  const [outcome, setOutcome] = useState<ActionOutcome | null>(null);
-  const [runs, setRuns] = useState(0);
-  const tool = TOOLS.find((t) => t.name === name)!;
+  const [model, setModel] = useState(savedModel);
+  const [choosing, setChoosing] = useState(false);
 
-  const choose = (next: string | null) => {
-    if (!next) return;
-    setName(next);
-    setInput(example(next));
-    setOutcome(null);
+  const select = (next: CoachModel) => {
+    setSetting(db, MODEL_KEY, next.id);
+    setModel(next);
+    setChoosing(false);
   };
 
-  const run = () => {
-    let parsed: unknown;
-    try {
-      parsed = input.trim() ? JSON.parse(input) : {};
-    } catch {
-      setOutcome({ type: 'error', message: 'The input isn’t valid JSON.' });
-      return;
-    }
-    setOutcome(runAction(db, name, parsed));
-    setRuns(runs + 1);
-  };
+  // The chosen model may have been deleted from the list.
+  const current = model && isDownloaded(model) ? model : null;
+  const showSetup = choosing || !current;
 
   return (
     <Screen title="Coach">
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ThemedText type="small" themeColor="textSecondary">
-          The on-device coach is coming. These are the actions it will use. Anything that changes your data is
-          shown as a proposal first, and nothing is saved until you approve it.
+      <View style={styles.header}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.grow}>
+          {current ? current.name : 'No model yet'}
         </ThemedText>
-        <Chips options={TOOLS.map((t) => ({ value: t.name, label: t.name }))} value={name} onChange={choose} />
-        <ThemedText type="small" themeColor="textSecondary">
-          {tool.description}
-        </ThemedText>
-        <TextField
-          label="Input (JSON)"
-          value={input}
-          onChangeText={setInput}
-          multiline
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.code}
-        />
-        <Button title="Run" onPress={run} />
-
-        {outcome?.type === 'proposal' ? <ProposalCard key={runs} proposal={outcome.proposal} /> : null}
-        {outcome?.type === 'result' ? (
-          <ThemedView type="backgroundElement" style={styles.output}>
-            <ThemedText type="small" style={styles.code} selectable>
-              {JSON.stringify(outcome.data, null, 2)}
-            </ThemedText>
-          </ThemedView>
+        {current ? (
+          <Button title={showSetup ? 'Back to chat' : 'Model'} variant="secondary" onPress={() => setChoosing(!choosing)} />
         ) : null}
-        {outcome?.type === 'error' ? (
-          <ThemedText type="small" themeColor="danger">
-            {outcome.message}
-          </ThemedText>
-        ) : null}
-      </ScrollView>
+        <Button title="Actions" variant="secondary" onPress={() => router.push('/coach-actions')} />
+      </View>
+      {showSetup ? (
+        <ScrollView contentContainerStyle={styles.setup}>
+          <ModelSetup selectedId={current?.id ?? null} onSelect={select} />
+        </ScrollView>
+      ) : (
+        <CoachChat key={current.id} model={current} />
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: Spacing.three, paddingBottom: Spacing.four },
-  code: { fontFamily: Fonts?.mono, fontSize: 12 },
-  output: { borderRadius: 12, padding: Spacing.three },
+  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginBottom: Spacing.two },
+  grow: { flex: 1 },
+  setup: { paddingBottom: Spacing.four },
 });
