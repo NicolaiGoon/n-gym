@@ -16,8 +16,8 @@ export function listWorkouts(db: Database, limit = 50) {
 }
 
 /** Past sessions of one exercise, oldest first, in the shape the progression engine expects. */
-export async function exerciseHistory(db: Database, exerciseId: number): Promise<ExerciseSession[]> {
-  const rows = await db
+export function exerciseHistory(db: Database, exerciseId: number): ExerciseSession[] {
+  const rows = db
     .select({
       workoutId: workouts.id,
       startedAt: workouts.startedAt,
@@ -29,7 +29,8 @@ export async function exerciseHistory(db: Database, exerciseId: number): Promise
     .from(workoutSets)
     .innerJoin(workouts, eq(workoutSets.workoutId, workouts.id))
     .where(and(eq(workoutSets.exerciseId, exerciseId), isNotNull(workouts.finishedAt)))
-    .orderBy(asc(workouts.startedAt), asc(workoutSets.position));
+    .orderBy(asc(workouts.startedAt), asc(workoutSets.position))
+    .all();
 
   const sessions = new Map<number, ExerciseSession>();
   for (const row of rows) {

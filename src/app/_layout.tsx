@@ -11,7 +11,9 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-          <Stack.Screen name="pick-exercise" options={{ title: 'Add exercise', presentation: 'modal' }} />
+          <Stack.Screen name="pick-exercise" options={{ title: 'Choose exercise', presentation: 'modal' }} />
+          <Stack.Screen name="finish" options={{ title: 'Finish workout' }} />
+          <Stack.Screen name="summary/[id]" options={{ title: 'Summary' }} />
         </Stack>
       </DatabaseProvider>
     </ThemeProvider>

@@ -15,6 +15,13 @@
       "when": 1792222873888,
       "tag": "0001_routine_start_weight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792223291484,
+      "tag": "0002_workout_exercises",
+      "breakpoints": true
     }
   ]
 }
