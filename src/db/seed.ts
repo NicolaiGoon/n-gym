@@ -1,6 +1,6 @@
 import { count } from 'drizzle-orm';
 
-import type { Database } from './client';
+import type { Database } from './types';
 import { exercises } from './schema';
 
 type NewExercise = typeof exercises.$inferInsert;

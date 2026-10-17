@@ -22,6 +22,9 @@ jobs:
           cache: npm
 
       - run: npm ci
+        env:
+          # llama.rn downloads ~800 MB of native libraries; CI only checks JavaScript.
+          RNLLAMA_SKIP_POSTINSTALL: '1'
 
       - name: Tests
         run: npm test
