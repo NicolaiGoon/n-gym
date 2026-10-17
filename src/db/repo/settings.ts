@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+
 import { settings } from '../schema';
 import type { Database } from '../types';
 
@@ -40,4 +42,17 @@ export function updateSettings(db: Database, changes: Partial<AppSettings>): voi
 /** Query for live updates in screens. */
 export function settingsQuery(db: Database) {
   return db.select().from(settings);
+}
+
+/** Raw access for values that aren't part of AppSettings, such as backup bookkeeping. */
+export function getSetting(db: Database, key: string): string | undefined {
+  return db.select().from(settings).where(eq(settings.key, key)).get()?.value;
+}
+
+export function setSetting(db: Database, key: string, value: string | null): void {
+  if (value === null) {
+    db.delete(settings).where(eq(settings.key, key)).run();
+    return;
+  }
+  db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } }).run();
 }
