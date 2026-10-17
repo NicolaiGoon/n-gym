@@ -61,6 +61,11 @@ export default function ExerciseStatsScreen() {
   return (
     <Page>
       <Stack.Screen options={{ title: exercise.name }} />
+      {exercise.notes ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {exercise.notes}
+        </ThemedText>
+      ) : null}
 
       {sessions.length === 0 ? (
         <ThemedText themeColor="textSecondary">No logged sessions yet.</ThemedText>

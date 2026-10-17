@@ -1,11 +1,12 @@
 import { StyleSheet, View } from 'react-native';
 
 import { BarChart } from '@/components/charts/bar-chart';
+import { LineChart } from '@/components/charts/line-chart';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getSettings } from '@/db/repo/settings';
-import { setsPerMuscleGroup, weekStreak, weeklyTotals } from '@/db/stats';
+import { bodyWeights, setsPerMuscleGroup, weekStreak, weeklyTotals } from '@/db/stats';
 import { useDb } from '@/db/use-db';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -18,6 +19,7 @@ export function Overview() {
   const weeks = useDb((db) => weeklyTotals(db, 12));
   const streak = useDb((db) => weekStreak(db));
   const groups = useDb((db) => setsPerMuscleGroup(db));
+  const weights = useDb(bodyWeights);
   const thisWeek = weeks[weeks.length - 1];
   const maxSets = Math.max(1, ...groups.map((g) => g.sets));
 
@@ -70,6 +72,13 @@ export function Overview() {
           </ThemedText>
         </View>
       ))}
+
+      {weights.length > 1 ? (
+        <>
+          <ThemedText type="smallBold">Body weight</ThemedText>
+          <LineChart points={weights} format={(v) => `${Math.round(v * 10) / 10} ${unit}`} />
+        </>
+      ) : null}
     </View>
   );
 }

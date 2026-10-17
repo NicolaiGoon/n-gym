@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 
 import {
+  bodyMeasurements,
   exercises,
   routineDays,
   routineExercises,
@@ -31,6 +32,7 @@ export interface BackupTables {
   workoutExercises: Rows<typeof workoutExercises>;
   workoutSets: Rows<typeof workoutSets>;
   settings: Rows<typeof settings>;
+  bodyMeasurements: Rows<typeof bodyMeasurements>;
 }
 
 export interface Backup {
@@ -51,8 +53,11 @@ const TABLE_KEYS = [
   'settings',
 ] as const;
 
+/** Tables added after the first backups; missing ones are read as empty. */
+const OPTIONAL_TABLE_KEYS = ['bodyMeasurements'] as const;
+
 /** Columns stored as timestamps; JSON turns them into ISO strings, so they are turned back into dates on load. */
-const DATE_FIELDS = ['createdAt', 'startedAt', 'finishedAt', 'loggedAt'];
+const DATE_FIELDS = ['createdAt', 'startedAt', 'finishedAt', 'loggedAt', 'measuredAt'];
 
 export function createBackup(db: Database, now = new Date()): Backup {
   return {
@@ -68,6 +73,7 @@ export function createBackup(db: Database, now = new Date()): Backup {
       workoutExercises: db.select().from(workoutExercises).all(),
       workoutSets: db.select().from(workoutSets).all(),
       settings: db.select().from(settings).all(),
+      bodyMeasurements: db.select().from(bodyMeasurements).all(),
     },
   };
 }
@@ -91,8 +97,10 @@ export function parseBackup(text: string): Backup {
   if (typeof backup.version !== 'number' || backup.version > BACKUP_VERSION) {
     throw new Error('This backup was made by a newer version of n-gym. Update the app first.');
   }
-  for (const key of TABLE_KEYS) {
-    const rows = (backup.tables as unknown as Record<string, unknown>)[key];
+  const tables = backup.tables as unknown as Record<string, unknown>;
+  for (const key of OPTIONAL_TABLE_KEYS) tables[key] ??= [];
+  for (const key of [...TABLE_KEYS, ...OPTIONAL_TABLE_KEYS]) {
+    const rows = tables[key];
     if (!Array.isArray(rows)) throw new Error(`The backup is missing its ${key} table.`);
     for (const row of rows as Record<string, unknown>[]) {
       for (const field of DATE_FIELDS) {
@@ -137,6 +145,7 @@ export function restoreReplace(db: Database, backup: Backup): void {
     tx.delete(routines).run();
     tx.delete(exercises).run();
     tx.delete(settings).run();
+    tx.delete(bodyMeasurements).run();
 
     for (const row of t.exercises) tx.insert(exercises).values(row).run();
     for (const row of t.routines) tx.insert(routines).values(row).run();
@@ -146,6 +155,7 @@ export function restoreReplace(db: Database, backup: Backup): void {
     for (const row of t.workoutExercises) tx.insert(workoutExercises).values(row).run();
     for (const row of t.workoutSets) tx.insert(workoutSets).values(row).run();
     for (const row of t.settings) tx.insert(settings).values(row).run();
+    for (const row of t.bodyMeasurements) tx.insert(bodyMeasurements).values(row).run();
   });
 }
 
@@ -248,6 +258,10 @@ export function restoreMerge(db: Database, backup: Backup): MergeResult {
       tx.insert(workoutSets)
         .values({ ...row, workoutExerciseId: mappedItem, workoutId: mappedWorkout, exerciseId: exerciseId(oldExercise) })
         .run();
+    }
+    for (const { id: _id, ...row } of t.bodyMeasurements) {
+      const duplicate = tx.select({ id: bodyMeasurements.id }).from(bodyMeasurements).where(eq(bodyMeasurements.measuredAt, row.measuredAt)).get();
+      if (!duplicate) tx.insert(bodyMeasurements).values(row).run();
     }
   });
 
