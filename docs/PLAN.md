@@ -2,22 +2,23 @@
 
 Each phase is one pull request. A phase is merged only when `npm test` and `npm run typecheck` pass
 and the app has been tried on an Android phone or emulator. Phases are ordered so that the app is
-usable for real training as early as possible, and so the coach (which only automates what the app
-can already do) comes last.
+usable for real training as early as possible, so the coach only automates what the app can already
+do, and so the Jefit import comes last, when History, per-exercise logs and charts are ready to show
+the imported data.
 
 | Phase | PR | Status |
 | --- | --- | --- |
 | 0 | App skeleton: Expo, SQLite + Drizzle, progression engine | Done |
 | 1 | Lightweight CI and first installable build | Next |
-| 2 | Exercises and routines | |
-| 3 | Workout logging | |
-| 4 | Backup and restore | |
-| 5 | History and statistics | |
-| 6 | Jefit import | |
-| 7 | More progression techniques | |
-| 8 | Coach actions with approval | |
-| 9 | On-device LLM coach | |
-| 10 | Desktop MCP server (optional) | |
+| 2 | Exercises and routines |  |
+| 3 | Workout logging |  |
+| 4 | Backup and restore |  |
+| 5 | History and statistics |  |
+| 6 | More progression techniques |  |
+| 7 | Coach actions with approval |  |
+| 8 | On-device LLM coach |  |
+| 9 | Desktop MCP server (optional, can be skipped) |  |
+| 10 | Jefit import |  |
 
 ---
 
@@ -94,7 +95,54 @@ Goal: see progress.
 
 Done when: progress on any lift can be read at a glance.
 
-## Phase 6: Jefit import
+## Phase 6: More progression techniques
+
+Goal: go beyond the three basic rules.
+
+- Scheduled deload weeks and automatic deload suggestions when several lifts stall.
+- Wave/percentage programs (5/3/1-style) based on a training max.
+- Top set plus back-off sets.
+- Warm-up set generator and plate calculator.
+- Stall detection surfaced on the Workout and Exercise screens.
+
+Done when: each technique can be chosen per exercise and is covered by engine tests.
+
+## Phase 7: Coach actions with approval
+
+Goal: the safe layer the AI will use, built and tested before any model is added.
+
+- A set of actions with JSON schemas in the MCP tool format, e.g. `create_routine`,
+  `add_exercise_to_day`, `update_progression_rule`, `get_exercise_stats`, `list_recent_workouts`.
+- Read actions run immediately; write actions produce a proposal.
+- Proposal card showing exactly what will change (before and after), with Approve and Reject.
+  Nothing is written until Approve.
+- Tests run actions with scripted inputs, with no model involved.
+
+Done when: every action works and is approved through the card, driven by a test harness.
+
+## Phase 8: On-device LLM coach
+
+Goal: create workouts and change things by chatting, fully offline.
+
+- `llama.rn` (llama.cpp) added; model download manager with size, progress and a recommended model
+  for the phone's RAM (e.g. Qwen 3 4B or Gemma 3n, quantized).
+- Coach chat screen with a tool-calling loop over the Phase 7 actions; every write goes through the
+  proposal card.
+- System prompt includes the user's settings and a short training summary.
+- Works in airplane mode.
+
+Done when: "build me a 4-day upper/lower routine" produces a routine that can be approved and used.
+
+## Phase 9: Desktop MCP server (optional)
+
+Goal: use the same actions from Claude Desktop or a bigger model on a PC.
+
+- Small Node MCP server that reads a backup file (or a synced copy) and exposes the Phase 7 actions.
+- Write actions produce a change file the app imports with the same approval card.
+
+Done when: a desktop MCP client can read stats and propose a routine that the phone accepts.
+
+## Phase 10: Jefit import
 
 Goal: bring the full Jefit history over (about 930 workouts from 2016 to now, in the sample export).
 The file format is described in [jefit-export-format.md](jefit-export-format.md).
@@ -116,50 +164,3 @@ The file format is described in [jefit-export-format.md](jefit-export-format.md)
   bodyweight sets, renamed exercises, non-English notes). The real export is never committed.
 
 Done when: the full Jefit history appears in History and drives progression suggestions.
-
-## Phase 7: More progression techniques
-
-Goal: go beyond the three basic rules.
-
-- Scheduled deload weeks and automatic deload suggestions when several lifts stall.
-- Wave/percentage programs (5/3/1-style) based on a training max.
-- Top set plus back-off sets.
-- Warm-up set generator and plate calculator.
-- Stall detection surfaced on the Workout and Exercise screens.
-
-Done when: each technique can be chosen per exercise and is covered by engine tests.
-
-## Phase 8: Coach actions with approval
-
-Goal: the safe layer the AI will use, built and tested before any model is added.
-
-- A set of actions with JSON schemas in the MCP tool format, e.g. `create_routine`,
-  `add_exercise_to_day`, `update_progression_rule`, `get_exercise_stats`, `list_recent_workouts`.
-- Read actions run immediately; write actions produce a proposal.
-- Proposal card showing exactly what will change (before and after), with Approve and Reject.
-  Nothing is written until Approve.
-- Tests run actions with scripted inputs, with no model involved.
-
-Done when: every action works and is approved through the card, driven by a test harness.
-
-## Phase 9: On-device LLM coach
-
-Goal: create workouts and change things by chatting, fully offline.
-
-- `llama.rn` (llama.cpp) added; model download manager with size, progress and a recommended model
-  for the phone's RAM (e.g. Qwen 3 4B or Gemma 3n, quantized).
-- Coach chat screen with a tool-calling loop over the Phase 8 actions; every write goes through the
-  proposal card.
-- System prompt includes the user's settings and a short training summary.
-- Works in airplane mode.
-
-Done when: "build me a 4-day upper/lower routine" produces a routine that can be approved and used.
-
-## Phase 10: Desktop MCP server (optional)
-
-Goal: use the same actions from Claude Desktop or a bigger model on a PC.
-
-- Small Node MCP server that reads a backup file (or a synced copy) and exposes the Phase 8 actions.
-- Write actions produce a change file the app imports with the same approval card.
-
-Done when: a desktop MCP client can read stats and propose a routine that the phone accepts.
