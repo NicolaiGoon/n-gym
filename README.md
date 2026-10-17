@@ -14,6 +14,8 @@ progression built in, Jefit history import, and an on-device AI coach.
 | Coach | On-device LLM through `llama.rn` (llama.cpp). The model proposes changes as tool calls; the app shows a preview and only writes after you approve. |
 | MCP | Not in v1. Coach tools use MCP-style JSON schemas so a desktop MCP server can expose them later. |
 
+The phased roadmap is in [docs/PLAN.md](docs/PLAN.md).
+
 ## Layout
 
 ```
