@@ -32,7 +32,11 @@ progression engine (double, linear with deloads, RPE-based).
 Goal: every later PR is checked automatically, and the app is on the phone.
 
 - Lightweight GitHub Actions workflow: one job that runs `npm ci` (with the npm cache), then
-  `npm test`, `npm run typecheck` and `npm run lint` on every PR. No app builds or emulators in CI.
+  `npm test`, `npm run typecheck` and `npm run lint` on every PR. It also checks that the database
+  migrations match the schema (`drizzle-kit generate` produces no new files) and that the Android
+  JavaScript bundle compiles (`expo export --platform android`). The whole job should take about
+  1–2 minutes. Native APK builds and emulator tests stay out of CI because they cost many minutes
+  per run; APKs are built on demand with EAS instead.
 - ESLint config committed (Expo's default).
 - Development build profile verified: `eas build --profile development` produces an APK that installs
   and opens, and the database migrates and seeds on first start.
