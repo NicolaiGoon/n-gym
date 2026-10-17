@@ -2,22 +2,23 @@
 
 Each phase is one pull request. A phase is merged only when `npm test` and `npm run typecheck` pass
 and the app has been tried on an Android phone or emulator. Phases are ordered so that the app is
-usable for real training as early as possible, and so the coach (which only automates what the app
-can already do) comes last.
+usable for real training as early as possible, so the coach only automates what the app can already
+do, and so the Jefit import comes last, when History, per-exercise logs and charts are ready to show
+the imported data.
 
 | Phase | PR | Status |
 | --- | --- | --- |
 | 0 | App skeleton: Expo, SQLite + Drizzle, progression engine | Done |
 | 1 | Lightweight CI and first installable build | Next |
-| 2 | Exercises and routines | |
-| 3 | Workout logging | |
-| 4 | Backup and restore | |
-| 5 | History and statistics | |
-| 6 | Jefit import | |
-| 7 | More progression techniques | |
-| 8 | Coach actions with approval | |
-| 9 | On-device LLM coach | |
-| 10 | Desktop MCP server (optional) | |
+| 2 | Exercises and routines |  |
+| 3 | Workout logging |  |
+| 4 | Backup and restore |  |
+| 5 | History and statistics |  |
+| 6 | More progression techniques |  |
+| 7 | Coach actions with approval |  |
+| 8 | On-device LLM coach |  |
+| 9 | Desktop MCP server (optional, can be skipped) |  |
+| 10 | Jefit import |  |
 
 ---
 
@@ -94,21 +95,7 @@ Goal: see progress.
 
 Done when: progress on any lift can be read at a glance.
 
-## Phase 6: Jefit import
-
-Goal: bring the full Jefit history over. Needs a sample Jefit export to start.
-
-- Parse the Jefit CSV export (format confirmed against the sample).
-- Match Jefit exercise names to the library automatically, with a screen to fix or create the ones
-  that don't match; remember the choices.
-- Preview before import (number of workouts, sets, date range); import is repeatable without making
-  duplicates.
-- Imported workouts are marked with `source = 'jefit'`.
-- Parser tests use a trimmed copy of the real export.
-
-Done when: the full Jefit history appears in History and drives progression suggestions.
-
-## Phase 7: More progression techniques
+## Phase 6: More progression techniques
 
 Goal: go beyond the three basic rules.
 
@@ -120,7 +107,7 @@ Goal: go beyond the three basic rules.
 
 Done when: each technique can be chosen per exercise and is covered by engine tests.
 
-## Phase 8: Coach actions with approval
+## Phase 7: Coach actions with approval
 
 Goal: the safe layer the AI will use, built and tested before any model is added.
 
@@ -133,24 +120,47 @@ Goal: the safe layer the AI will use, built and tested before any model is added
 
 Done when: every action works and is approved through the card, driven by a test harness.
 
-## Phase 9: On-device LLM coach
+## Phase 8: On-device LLM coach
 
 Goal: create workouts and change things by chatting, fully offline.
 
 - `llama.rn` (llama.cpp) added; model download manager with size, progress and a recommended model
   for the phone's RAM (e.g. Qwen 3 4B or Gemma 3n, quantized).
-- Coach chat screen with a tool-calling loop over the Phase 8 actions; every write goes through the
+- Coach chat screen with a tool-calling loop over the Phase 7 actions; every write goes through the
   proposal card.
 - System prompt includes the user's settings and a short training summary.
 - Works in airplane mode.
 
 Done when: "build me a 4-day upper/lower routine" produces a routine that can be approved and used.
 
-## Phase 10: Desktop MCP server (optional)
+## Phase 9: Desktop MCP server (optional)
 
 Goal: use the same actions from Claude Desktop or a bigger model on a PC.
 
-- Small Node MCP server that reads a backup file (or a synced copy) and exposes the Phase 8 actions.
+- Small Node MCP server that reads a backup file (or a synced copy) and exposes the Phase 7 actions.
 - Write actions produce a change file the app imports with the same approval card.
 
 Done when: a desktop MCP client can read stats and propose a routine that the phone accepts.
+
+## Phase 10: Jefit import
+
+Goal: bring the full Jefit history over (about 930 workouts from 2016 to now, in the sample export).
+The file format is described in [jefit-export-format.md](jefit-export-format.md).
+
+- Parser for Jefit's sectioned export: split on `### SECTION ###` headers, then on blank-line
+  blocks that each carry their own header row.
+- Workouts from WORKOUT SESSIONS (start and end times), sets from the `logs` column of EXERCISE LOGS
+  (`weightxreps`, in the unit from SETTING). EXERCISE SET LOGS only covers recent workouts, so it is
+  used only to cross-check.
+- Exercises matched by Jefit id, not by name, since one id can carry several names over the years.
+  Custom exercises are created from CUSTOM EXERCISES. A matching screen lets you map Jefit
+  exercises to library ones or create new ones; the choices are remembered.
+- Routines (routines, days and their exercises with sets, reps and rest) imported as n-gym routines.
+- Also imported: body measurements (PROFILE), exercise notes (NOTES). Cardio, favorites and records
+  are skipped (records are recomputed from the history).
+- Preview before import (workouts, sets, date range, unmatched exercises); importing the same file
+  again adds nothing twice. Imported rows are marked with `source = 'jefit'`.
+- Parser tests use a small made-up fixture with the same structure and quirks (trailing commas,
+  bodyweight sets, renamed exercises, non-English notes). The real export is never committed.
+
+Done when: the full Jefit history appears in History and drives progression suggestions.
