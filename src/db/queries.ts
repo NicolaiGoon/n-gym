@@ -2,12 +2,8 @@ import { and, asc, desc, eq, isNotNull } from 'drizzle-orm';
 
 import type { ExerciseSession } from '@/progression/types';
 
-import type { Database } from './client';
-import { exercises, workoutSets, workouts } from './schema';
-
-export function listExercises(db: Database) {
-  return db.select().from(exercises).orderBy(asc(exercises.muscleGroup), asc(exercises.name));
-}
+import type { Database } from './types';
+import { workoutSets, workouts } from './schema';
 
 /** Finished workouts, newest first. */
 export function listWorkouts(db: Database, limit = 50) {
