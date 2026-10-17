@@ -46,4 +46,4 @@ Docs: https://docs.expo.dev/eas/index.md
 - Keep `src/progression` free of React Native and Expo imports so it stays testable with `npm test` and reusable by the coach tools.
 - Schema changes: edit `src/db/schema.ts`, run `npm run db:generate`, commit `drizzle/`.
 - The coach must never write to the database directly: it proposes actions, the user approves them.
-- Run `npm test` and `npm run typecheck` before declaring a task done.
+- Run `npm test`, `npm run typecheck`, `npm run lint` and `npm run db:check` before declaring a task done.

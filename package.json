@@ -34,6 +34,8 @@
     "@types/react": "~19.3.0",
     "babel-plugin-inline-import": "^3.0.0",
     "drizzle-kit": "^0.31.11",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
   },
@@ -44,7 +46,9 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit generate && git diff --exit-code --stat -- drizzle && test -z \"$(git status --porcelain -- drizzle)\"",
+    "bundle:android": "expo export --platform android --output-dir dist"
   },
   "private": true
 }
