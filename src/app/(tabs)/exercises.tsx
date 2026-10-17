@@ -9,7 +9,7 @@ export default function ExercisesScreen() {
     <Screen title="Exercises">
       <ExerciseList
         header={<Button title="New exercise" onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: 'new' } })} />}
-        onSelect={(exercise) => router.push({ pathname: '/exercise/[id]', params: { id: exercise.id } })}
+        onSelect={(exercise) => router.push({ pathname: '/stats/[id]', params: { id: exercise.id } })}
       />
     </Screen>
   );

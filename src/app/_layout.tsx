@@ -15,6 +15,7 @@ export default function RootLayout() {
           <Stack.Screen name="finish" options={{ title: 'Finish workout' }} />
           <Stack.Screen name="summary/[id]" options={{ title: 'Summary' }} />
           <Stack.Screen name="restore" options={{ title: 'Restore backup' }} />
+          <Stack.Screen name="history/[id]" options={{ title: 'Workout' }} />
         </Stack>
       </DatabaseProvider>
     </ThemeProvider>
