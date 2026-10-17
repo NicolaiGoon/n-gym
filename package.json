@@ -38,6 +38,8 @@
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@types/node": "^26.6.5",
     "@types/react": "~19.3.0",
     "@types/sql.js": "^1.4.11",
     "babel-plugin-inline-import": "^3.0.0",
@@ -45,6 +47,7 @@
     "eslint": "^9.39.5",
     "eslint-config-expo": "~58.0.0",
     "sql.js": "^1.15.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
   },
@@ -53,11 +56,12 @@
     "android": "expo run:android",
     "android:apk": "npx eas-cli@latest build --platform android --profile preview",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p mcp",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit generate && git diff --exit-code --stat -- drizzle && test -z \"$(git status --porcelain -- drizzle)\"",
-    "bundle:android": "expo export --platform android --output-dir dist"
+    "bundle:android": "expo export --platform android --output-dir dist",
+    "mcp": "tsx mcp/server.mts"
   },
   "private": true
 }
