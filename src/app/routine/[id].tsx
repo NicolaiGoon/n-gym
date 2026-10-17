@@ -17,6 +17,7 @@ import {
   setRoutineArchived,
   updateRoutine,
 } from '@/db/repo/routines';
+import { startWorkout } from '@/db/repo/workouts';
 import { useDb, write } from '@/db/use-db';
 
 type Dialog = { kind: 'rename' } | { kind: 'add-day' } | null;
@@ -28,6 +29,10 @@ export default function RoutineScreen() {
   const [dialog, setDialog] = useState<Dialog>(null);
 
   if (!routine) return <Page>{null}</Page>;
+
+  const start = (dayId: number) => {
+    if (write((db) => startWorkout(db, dayId))) router.push('/workout');
+  };
 
   const confirmDelete = () =>
     Alert.alert('Delete routine?', `"${routine.name}" and its days will be deleted. Logged workouts are kept.`, [
@@ -57,6 +62,7 @@ export default function RoutineScreen() {
           onPress={() => router.push({ pathname: '/day/[id]', params: { id: day.id } })}
           trailing={
             <View style={styles.row}>
+              {day.exerciseCount > 0 ? <Button title="Start" onPress={() => start(day.id)} /> : null}
               {index > 0 ? (
                 <IconButton label="↑" accessibilityLabel="Move up" onPress={() => write((db) => moveDay(db, day.id, 'up'))} />
               ) : null}
@@ -98,6 +104,6 @@ export default function RoutineScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
   footer: { flexDirection: 'row', gap: Spacing.two, flexWrap: 'wrap', marginTop: Spacing.three },
 });

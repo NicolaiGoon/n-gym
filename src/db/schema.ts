@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import type { ProgressionRule } from '@/progression/types';
+import type { ProgressionRule, Suggestion } from '@/progression/types';
 
 const createdAt = () =>
   integer('created_at', { mode: 'timestamp' })
@@ -67,11 +67,36 @@ export const workouts = sqliteTable('workouts', {
   source: text('source').notNull().default('app'),
 });
 
+/** An exercise performed in a workout, in order. Created at start from the routine day, or added ad hoc. */
+export const workoutExercises = sqliteTable(
+  'workout_exercises',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    workoutId: integer('workout_id')
+      .notNull()
+      .references(() => workouts.id, { onDelete: 'cascade' }),
+    exerciseId: integer('exercise_id')
+      .notNull()
+      .references(() => exercises.id),
+    /** The routine slot it came from, if any, so its rule drives the suggestion. */
+    slotId: integer('slot_id').references(() => routineExercises.id, { onDelete: 'set null' }),
+    position: integer('position').notNull(),
+    /** What the progression engine suggested when the exercise was added. */
+    target: text('target', { mode: 'json' }).$type<Suggestion>(),
+    restSeconds: integer('rest_seconds').notNull().default(120),
+  },
+  (t) => [index('workout_exercises_workout_idx').on(t.workoutId)],
+);
+
 /** One logged set. */
 export const workoutSets = sqliteTable(
   'workout_sets',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    workoutExerciseId: integer('workout_exercise_id')
+      .notNull()
+      .references(() => workoutExercises.id, { onDelete: 'cascade' }),
+    // workoutId and exerciseId are copied from the workout exercise so history queries need no extra join.
     workoutId: integer('workout_id')
       .notNull()
       .references(() => workouts.id, { onDelete: 'cascade' }),
@@ -83,8 +108,13 @@ export const workoutSets = sqliteTable(
     reps: integer('reps').notNull(),
     rpe: real('rpe'),
     isWarmup: integer('is_warmup', { mode: 'boolean' }).notNull().default(false),
+    loggedAt: integer('logged_at', { mode: 'timestamp' }),
   },
-  (t) => [index('workout_sets_exercise_idx').on(t.exerciseId), index('workout_sets_workout_idx').on(t.workoutId)],
+  (t) => [
+    index('workout_sets_exercise_idx').on(t.exerciseId),
+    index('workout_sets_workout_idx').on(t.workoutId),
+    index('workout_sets_workout_exercise_idx').on(t.workoutExerciseId),
+  ],
 );
 
 /** Key/value app settings such as the weight unit. */
