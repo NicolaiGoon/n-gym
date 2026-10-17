@@ -1,10 +1,11 @@
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, max, ne } from 'drizzle-orm';
 
-import { defaultRule, estimateOneRepMax, suggestNext, type Suggestion } from '@/progression';
+import { applyDeload, defaultRule, estimateOneRepMax, suggestNext, type Suggestion } from '@/progression';
 
 import { exerciseHistory } from '../queries';
 import { exercises, routineExercises, workoutExercises, workouts, workoutSets } from '../schema';
 import type { Database } from '../types';
+import { isDeloadActive } from './deload';
 import { moveInOrder } from './move';
 
 export type Workout = typeof workouts.$inferSelect;
@@ -26,12 +27,17 @@ export function getWorkout(db: Database, id: number): Workout | undefined {
   return db.select().from(workouts).where(eq(workouts.id, id)).get();
 }
 
-/** What the engine suggests for an exercise, using the routine slot's rule when there is one. */
-export function suggestFor(db: Database, exerciseId: number, slotId?: number | null): Suggestion {
+/**
+ * What the engine suggests for an exercise, using the routine slot's rule when there is one.
+ * During a deload week the suggestion is lightened.
+ */
+export function suggestFor(db: Database, exerciseId: number, slotId?: number | null, now = new Date()): Suggestion {
   const slot = slotId ? db.select().from(routineExercises).where(eq(routineExercises.id, slotId)).get() : undefined;
   const exercise = db.select().from(exercises).where(eq(exercises.id, exerciseId)).get();
-  const rule = slot?.rule ?? defaultRule('double', exercise?.defaultIncrement ?? 2.5);
-  return suggestNext(rule, exerciseHistory(db, exerciseId), slot?.startWeight ?? 0);
+  const increment = exercise?.defaultIncrement ?? 2.5;
+  const rule = slot?.rule ?? defaultRule('double', increment);
+  const suggestion = suggestNext(rule, exerciseHistory(db, exerciseId), slot?.startWeight ?? 0);
+  return isDeloadActive(db, now) ? applyDeload(suggestion, increment || 1) : suggestion;
 }
 
 function nextPosition(db: Database, workoutId: number): number {
@@ -61,7 +67,7 @@ export function startWorkout(db: Database, dayId: number | null, now = new Date(
           exerciseId: slot.exerciseId,
           slotId: slot.id,
           position,
-          target: suggestFor(tx, slot.exerciseId, slot.id),
+          target: suggestFor(tx, slot.exerciseId, slot.id, now),
           restSeconds: slot.restSeconds,
         })
         .run(),
@@ -78,6 +84,7 @@ export function workoutDetail(db: Database, workoutId: number) {
       exerciseId: workoutExercises.exerciseId,
       name: exercises.name,
       increment: exercises.defaultIncrement,
+      equipment: exercises.equipment,
       target: workoutExercises.target,
       restSeconds: workoutExercises.restSeconds,
     })

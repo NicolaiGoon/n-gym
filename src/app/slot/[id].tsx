@@ -21,13 +21,21 @@ const TYPE_OPTIONS: { value: RuleType; label: string }[] = [
   { value: 'double', label: 'Double' },
   { value: 'linear', label: 'Linear' },
   { value: 'rpe', label: 'RPE' },
+  { value: 'topBackoff', label: 'Top + back-off' },
+  { value: 'wave', label: '5/3/1 waves' },
 ];
 
 const TYPE_HELP: Record<RuleType, string> = {
   double: 'Work up the rep range at the same weight. When every set hits the top, add weight and start again at the bottom.',
   linear: 'Same sets and reps every time. Add weight after each successful session, and deload after repeated misses.',
   rpe: 'Fixed sets and reps. Weight goes up or down so the top set lands on the target RPE.',
+  topBackoff:
+    'One heavy top set worked up the rep range like double progression, then lighter back-off sets at a percentage of it.',
+  wave: 'Four-week cycles from a training max: 5s, 3s, 5/3/1 (last set as many reps as possible), then a deload week. The training max goes up by the increment after each cycle.',
 };
+
+/** Fields shown as percentages in the editor but stored as fractions. */
+const PERCENT_FIELDS = new Set(['deloadPercent', 'backoffPercent']);
 
 /** Rule fields as editable text, so partial input like "2." is allowed while typing. */
 type Draft = Record<string, string>;
@@ -36,7 +44,7 @@ function toDraft(rule: ProgressionRule): Draft {
   const draft: Draft = {};
   for (const [key, value] of Object.entries(rule)) {
     if (key === 'type') continue;
-    draft[key] = key === 'deloadPercent' ? String(Math.round((value as number) * 100)) : String(value);
+    draft[key] = PERCENT_FIELDS.has(key) ? String(Math.round((value as number) * 100)) : String(value);
   }
   return draft;
 }
@@ -57,6 +65,19 @@ function fromDraft(type: RuleType, draft: Draft): ProgressionRule {
       };
     case 'rpe':
       return { type, sets: n('sets'), reps: n('reps'), targetRpe: n('targetRpe'), increment: n('increment') };
+    case 'wave':
+      return { type, trainingMax: n('trainingMax'), increment: n('increment'), roundTo: n('roundTo') };
+    case 'topBackoff':
+      return {
+        type,
+        repMin: n('repMin'),
+        repMax: n('repMax'),
+        increment: n('increment'),
+        backoffSets: n('backoffSets'),
+        backoffPercent: n('backoffPercent') / 100,
+        backoffReps: n('backoffReps'),
+        roundTo: n('roundTo'),
+      };
   }
 }
 
@@ -80,6 +101,20 @@ const FIELDS: Record<RuleType, [string, string][]> = {
     ['targetRpe', 'Target RPE'],
     ['increment', 'Increment'],
   ],
+  topBackoff: [
+    ['repMin', 'Top set min reps'],
+    ['repMax', 'Top set max reps'],
+    ['increment', 'Increment'],
+    ['backoffSets', 'Back-off sets'],
+    ['backoffPercent', 'Back-off %'],
+    ['backoffReps', 'Back-off reps'],
+    ['roundTo', 'Round to'],
+  ],
+  wave: [
+    ['trainingMax', 'Training max'],
+    ['increment', 'Increment per cycle'],
+    ['roundTo', 'Round to'],
+  ],
 };
 
 export default function SlotScreen() {
@@ -101,7 +136,8 @@ export default function SlotScreen() {
     if (!next || next === type) return;
     // Keep sets and increment, fill the rest from the new type's defaults.
     const base = toDraft(defaultRule(next, Number(draft.increment) || increment));
-    setDraft({ ...base, sets: draft.sets ?? base.sets, increment: draft.increment ?? base.increment });
+    const keep = (key: string) => (key in base && draft[key] !== undefined ? { [key]: draft[key] } : {});
+    setDraft({ ...base, ...keep('sets'), ...(next === 'wave' ? {} : keep('increment')) });
     setType(next);
   };
 
@@ -132,7 +168,7 @@ export default function SlotScreen() {
         {FIELDS[type].map(([key, label]) => (
           <View key={key} style={styles.cell}>
             <NumberField
-              label={key === 'increment' ? `${label} (${initial.unit})` : label}
+              label={['increment', 'trainingMax', 'roundTo'].includes(key) ? `${label} (${initial.unit})` : label}
               value={draft[key] ?? ''}
               onChangeValue={(text) => setDraft({ ...draft, [key]: text })}
             />

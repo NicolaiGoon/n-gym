@@ -10,9 +10,11 @@ import { RestBanner } from '@/components/workout/rest-banner';
 import { Spacing } from '@/constants/theme';
 import { getDay } from '@/db/repo/routines';
 import { getSettings } from '@/db/repo/settings';
+import { exerciseHistory } from '@/db/queries';
 import { discardWorkout, getActiveWorkout, previousSets, workoutDetail } from '@/db/repo/workouts';
 import { useDb, write } from '@/db/use-db';
 import { formatDuration, useNow } from '@/hooks/use-now';
+import { isStalled } from '@/progression';
 import { skipRest } from '@/workout/rest-timer';
 
 /** The workout in progress. */
@@ -22,6 +24,9 @@ export default function WorkoutScreen() {
   const day = useDb((db) => (workout?.dayId ? getDay(db, workout.dayId) : undefined));
   const items = useDb((db) => (workout ? workoutDetail(db, workout.id) : []));
   const previous = useDb((db) => new Map(items.map((item) => [item.id, previousSets(db, item.exerciseId, workout?.id)])));
+  const stalled = useDb(
+    (db) => new Set(items.filter((item) => isStalled(exerciseHistory(db, item.exerciseId))).map((item) => item.id)),
+  );
   const { unit } = useDb(getSettings);
   const now = useNow();
 
@@ -63,6 +68,7 @@ export default function WorkoutScreen() {
           item={item}
           previous={previous.get(item.id) ?? []}
           unit={unit}
+          stalled={stalled.has(item.id)}
           isFirst={index === 0}
           isLast={index === items.length - 1}
         />
