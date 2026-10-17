@@ -8,7 +8,7 @@ can already do) comes last.
 | Phase | PR | Status |
 | --- | --- | --- |
 | 0 | App skeleton: Expo, SQLite + Drizzle, progression engine | Done |
-| 1 | CI and first installable build | Next |
+| 1 | Test-only CI and first installable build | Next |
 | 2 | Exercises and routines | |
 | 3 | Workout logging | |
 | 4 | Backup and restore | |
@@ -27,18 +27,19 @@ Expo SDK 58 app for Android with Expo Router tabs (Workout, History, Exercises, 
 SQLite database through Drizzle with migrations and a seeded exercise library, and a tested
 progression engine (double, linear with deloads, RPE-based).
 
-## Phase 1: CI and first installable build
+## Phase 1: Test-only CI and first installable build
 
 Goal: every later PR is checked automatically, and the app is on the phone.
 
-- GitHub Actions workflow running `npm ci`, `npm test`, `npm run typecheck` and `npx expo lint` on
-  every PR.
-- ESLint config committed (Expo's default).
+- Lightweight GitHub Actions workflow: one job that runs `npm ci` (with the npm cache) and
+  `npm test` on every PR. No app builds, emulators or lint in CI; typecheck and lint stay local
+  checks before merging.
+- ESLint config committed (Expo's default) for local use.
 - Development build profile verified: `eas build --profile development` produces an APK that installs
   and opens, and the database migrates and seeds on first start.
 - App name, package id (`com.nicolaigoon.ngym`), icon and splash set.
 
-Done when: CI is green on the PR and the dev build runs on the phone.
+Done when: the test job is green on the PR and the dev build runs on the phone.
 
 ## Phase 2: Exercises and routines
 
