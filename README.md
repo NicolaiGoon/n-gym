@@ -30,9 +30,14 @@ drizzle/           generated SQL migrations
 
 ```bash
 npm install
-npm test               # progression engine tests
+npm test               # unit tests
 npm run typecheck
+npm run lint
+npm run db:check       # migrations match the schema
 ```
+
+CI (`.github/workflows/ci.yml`) runs the same checks plus a compile of the Android JavaScript
+bundle on every PR. It doesn't build APKs or run emulators, to keep CI minutes low.
 
 The app uses native modules (SQLite now, llama.cpp later), so it runs in a development build
 rather than Expo Go:
