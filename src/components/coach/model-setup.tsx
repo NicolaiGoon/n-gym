@@ -1,8 +1,9 @@
 import { totalMemory } from 'expo-device';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { deleteModel, downloadModel, isDownloaded } from '@/coach/llama';
+import { cancelModelDownload, startModelDownload, useModelDownload } from '@/coach/downloads';
+import { deleteModel, isDownloaded } from '@/coach/llama';
 import { COACH_MODELS, formatBytes, recommendedModel, type CoachModel } from '@/coach/models';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -25,22 +26,15 @@ function ProgressBar({ fraction }: { fraction: number }) {
 /** Lists the coach models with download, cancel, use and delete. */
 export function ModelSetup({ selectedId, onSelect }: { selectedId: string | null; onSelect: (model: CoachModel) => void }) {
   const recommended = recommendedModel(totalMemory);
-  const [download, setDownload] = useState<{ id: string; fraction: number } | null>(null);
+  const download = useModelDownload();
   const [, setVersion] = useState(0);
-  const abort = useRef<AbortController | null>(null);
 
   const start = async (model: CoachModel) => {
-    abort.current = new AbortController();
-    setDownload({ id: model.id, fraction: 0 });
     try {
-      await downloadModel(model, (fraction) => setDownload({ id: model.id, fraction }), abort.current.signal);
-      onSelect(model);
+      if (await startModelDownload(model)) onSelect(model);
     } catch (error) {
-      if (!abort.current.signal.aborted) {
-        Alert.alert('Download failed', error instanceof Error ? error.message : String(error));
-      }
+      Alert.alert('Download failed', error instanceof Error ? error.message : String(error));
     } finally {
-      setDownload(null);
       setVersion((v) => v + 1);
     }
   };
@@ -84,7 +78,7 @@ export function ModelSetup({ selectedId, onSelect }: { selectedId: string | null
                   <ThemedText type="small" themeColor="textSecondary" style={styles.grow}>
                     {Math.round(download.fraction * 100)}% of {formatBytes(model.bytes)}
                   </ThemedText>
-                  <Button title="Cancel" variant="secondary" onPress={() => abort.current?.abort()} />
+                  <Button title="Cancel" variant="secondary" onPress={cancelModelDownload} />
                 </View>
               </>
             ) : downloaded ? (

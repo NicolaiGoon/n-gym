@@ -230,6 +230,19 @@ function ruleFor(targets: number[], sets: number, increment: number): Progressio
   return { type: 'double', sets: count, repMin: low, repMax: high, increment };
 }
 
+/** Rows per insert statement, well under SQLite's limit on bound parameters. */
+const CHUNK = 100;
+
+function chunks<T>(rows: T[]): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < rows.length; i += CHUNK) result.push(rows.slice(i, i + CHUNK));
+  return result;
+}
+
+function maxId(db: Database, table: typeof workouts | typeof workoutExercises): number {
+  return db.select({ max: sql<number | null>`max(${table.id})` }).from(table).get()?.max ?? 0;
+}
+
 export function applyImport(db: Database, data: JefitExport, choices: Record<string, ExerciseChoice>): ImportResult {
   const result: ImportResult = { workouts: 0, sets: 0, exercisesCreated: 0, routines: 0, measurements: 0 };
   const { unit, defaultIncrement } = getSettings(db);
@@ -302,45 +315,47 @@ export function applyImport(db: Database, data: JefitExport, choices: Record<str
       });
     }
 
-    // Workouts with their exercises and sets.
+    // Workouts with their exercises and sets. Ids are assigned here so the rows can be inserted in
+    // a few large statements instead of one per row, which is what makes a big import fast.
     const doneWorkouts = importedIds(tx, workouts);
+    let nextWorkoutId = maxId(tx, workouts) + 1;
+    let nextItemId = maxId(tx, workoutExercises) + 1;
+    const workoutRows: (typeof workouts.$inferInsert)[] = [];
+    const itemRows: (typeof workoutExercises.$inferInsert)[] = [];
+    const setRows: (typeof workoutSets.$inferInsert)[] = [];
     for (const group of workoutGroups(data)) {
       if (doneWorkouts.has(group.externalId)) continue;
-      const workoutId = tx
-        .insert(workouts)
-        .values({
-          dayId: group.jefitDayId !== null ? (dayIds.get(group.jefitDayId) ?? null) : null,
-          startedAt: group.start,
-          finishedAt: group.end,
-          source: 'jefit',
-          externalId: group.externalId,
-        })
-        .returning({ id: workouts.id })
-        .get().id;
-      result.workouts++;
+      const workoutId = nextWorkoutId++;
+      workoutRows.push({
+        id: workoutId,
+        dayId: group.jefitDayId !== null ? (dayIds.get(group.jefitDayId) ?? null) : null,
+        startedAt: group.start,
+        finishedAt: group.end,
+        source: 'jefit',
+        externalId: group.externalId,
+      });
       group.logs.forEach((log, position) => {
         const exerciseId = ids.get(log.key)!;
-        const itemId = tx
-          .insert(workoutExercises)
-          .values({ workoutId, exerciseId, position })
-          .returning({ id: workoutExercises.id })
-          .get().id;
-        tx.insert(workoutSets)
-          .values(
-            log.sets.map((set, i) => ({
-              workoutExerciseId: itemId,
-              workoutId,
-              exerciseId,
-              position: i,
-              weight: convert(set.weight),
-              reps: set.reps,
-              loggedAt: group.start,
-            })),
-          )
-          .run();
-        result.sets += log.sets.length;
+        const itemId = nextItemId++;
+        itemRows.push({ id: itemId, workoutId, exerciseId, position });
+        log.sets.forEach((set, i) =>
+          setRows.push({
+            workoutExerciseId: itemId,
+            workoutId,
+            exerciseId,
+            position: i,
+            weight: convert(set.weight),
+            reps: set.reps,
+            loggedAt: group.start,
+          }),
+        );
       });
     }
+    for (const chunk of chunks(workoutRows)) tx.insert(workouts).values(chunk).run();
+    for (const chunk of chunks(itemRows)) tx.insert(workoutExercises).values(chunk).run();
+    for (const chunk of chunks(setRows)) tx.insert(workoutSets).values(chunk).run();
+    result.workouts = workoutRows.length;
+    result.sets = setRows.length;
 
     // Body measurements, one per date.
     for (const m of data.measurements) {
