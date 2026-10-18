@@ -10,12 +10,14 @@ export function ListRow({
   title,
   subtitle,
   onPress,
+  leading,
   trailing,
   dimmed = false,
 }: {
   title: string;
   subtitle?: string | null;
   onPress?: () => void;
+  leading?: ReactNode;
   trailing?: ReactNode;
   dimmed?: boolean;
 }) {
@@ -28,6 +30,7 @@ export function ListRow({
         styles.row,
         { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement, opacity: dimmed ? 0.6 : 1 },
       ]}>
+      {leading}
       <View style={styles.text}>
         <ThemedText type="smallBold">{title}</ThemedText>
         {subtitle ? (

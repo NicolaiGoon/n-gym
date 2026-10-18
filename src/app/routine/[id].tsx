@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
+import { MuscleSets } from '@/components/charts/muscle-sets';
 import { Page } from '@/components/page';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import {
   updateRoutine,
 } from '@/db/repo/routines';
 import { startWorkout } from '@/db/repo/workouts';
+import { plannedSetsPerMuscle } from '@/db/stats';
 import { useDb, write } from '@/db/use-db';
 
 type Dialog = { kind: 'rename' } | { kind: 'add-day' } | null;
@@ -26,6 +28,7 @@ export default function RoutineScreen() {
   const id = Number(useLocalSearchParams<{ id: string }>().id);
   const routine = useDb((db) => getRoutine(db, id));
   const days = useDb((db) => daysQuery(db, id).all());
+  const weekly = useDb((db) => plannedSetsPerMuscle(db, id));
   const [dialog, setDialog] = useState<Dialog>(null);
 
   if (!routine) return <Page>{null}</Page>;
@@ -74,6 +77,18 @@ export default function RoutineScreen() {
         />
       ))}
       <Button title="Add day" onPress={() => setDialog({ kind: 'add-day' })} />
+
+      {weekly.length ? (
+        <>
+          <ThemedText type="smallBold" themeColor="textSecondary">
+            WEEKLY SETS PER MUSCLE
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            If you train each day once a week. Half a set is counted for muscles that only help.
+          </ThemedText>
+          <MuscleSets totals={weekly} empty="" />
+        </>
+      ) : null}
 
       <View style={styles.footer}>
         <Button title="Rename" variant="secondary" onPress={() => setDialog({ kind: 'rename' })} />

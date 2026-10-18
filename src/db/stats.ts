@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, gte, isNotNull, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNotNull, lt, sql } from 'drizzle-orm';
 
-import { estimateOneRepMax } from '@/progression';
+import { addSets, musclesOf, sortedMuscleTotals } from '@/data/library';
+import { estimateOneRepMax, type ProgressionRule } from '@/progression';
 
-import { bodyMeasurements, exercises, routineDays, workouts, workoutSets } from './schema';
+import { bodyMeasurements, exercises, routineDays, routineExercises, workouts, workoutSets } from './schema';
 import type { Database } from './types';
 
 /**
@@ -179,6 +180,71 @@ export function setsPerMuscleGroup(db: Database, now = new Date()): { muscleGrou
   const counts = new Map<string, number>();
   for (const { muscleGroup } of rows) counts.set(muscleGroup, (counts.get(muscleGroup) ?? 0) + 1);
   return [...counts.entries()].map(([muscleGroup, sets]) => ({ muscleGroup, sets })).sort((a, b) => b.sets - a.sets);
+}
+
+/**
+ * Working sets per muscle in the 7 days up to `now`, most first. A set counts once for each muscle
+ * the exercise mainly works and as half a set for each muscle that helps.
+ */
+export function setsPerMuscle(db: Database, now = new Date()): { muscle: string; sets: number }[] {
+  const since = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+  const rows = db
+    .select({
+      muscleGroup: exercises.muscleGroup,
+      primaryMuscles: exercises.primaryMuscles,
+      secondaryMuscles: exercises.secondaryMuscles,
+      sets: sql<number>`count(*)`,
+    })
+    .from(workoutSets)
+    .innerJoin(workouts, eq(workoutSets.workoutId, workouts.id))
+    .innerJoin(exercises, eq(workoutSets.exerciseId, exercises.id))
+    .where(
+      and(
+        isNotNull(workouts.finishedAt),
+        gte(workouts.startedAt, since),
+        lt(workouts.startedAt, now),
+        eq(workoutSets.isWarmup, false),
+      ),
+    )
+    .groupBy(exercises.id)
+    .all();
+  const totals = new Map<string, number>();
+  for (const row of rows) addSets(totals, musclesOf(row), row.sets);
+  return sortedMuscleTotals(totals);
+}
+
+/** Working sets one session of an exercise slot prescribes. */
+export function workingSets(rule: ProgressionRule): number {
+  switch (rule.type) {
+    case 'wave':
+      return 3;
+    case 'topBackoff':
+      return 1 + rule.backoffSets;
+    default:
+      return rule.sets;
+  }
+}
+
+/**
+ * Sets per muscle a routine plans for one week, assuming each of its days is trained once.
+ * Counted the same way as `setsPerMuscle`, so the two can be compared.
+ */
+export function plannedSetsPerMuscle(db: Database, routineId: number): { muscle: string; sets: number }[] {
+  const rows = db
+    .select({
+      rule: routineExercises.rule,
+      muscleGroup: exercises.muscleGroup,
+      primaryMuscles: exercises.primaryMuscles,
+      secondaryMuscles: exercises.secondaryMuscles,
+    })
+    .from(routineExercises)
+    .innerJoin(routineDays, eq(routineExercises.dayId, routineDays.id))
+    .innerJoin(exercises, eq(routineExercises.exerciseId, exercises.id))
+    .where(eq(routineDays.routineId, routineId))
+    .all();
+  const totals = new Map<string, number>();
+  for (const row of rows) addSets(totals, musclesOf(row), workingSets(row.rule));
+  return sortedMuscleTotals(totals);
 }
 
 export interface HistoryRow {

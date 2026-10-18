@@ -48,7 +48,9 @@ export default function ImportJefitScreen() {
     clearJefitImport();
     Alert.alert(
       'Import complete',
-      `Added ${r.workouts} workouts (${r.sets} sets), ${r.exercisesCreated} exercises, ${r.routines} routines and ${r.measurements} body measurements.`,
+      `Added ${r.workouts} workouts (${r.sets} sets), ${r.exercisesCreated} exercises, ${r.routines} routines and ${r.measurements} body measurements.${
+        r.exercisesCreated ? ' To give the new exercises pictures and muscles, link them in Settings → Link to library.' : ''
+      }`,
     );
     router.back();
   };

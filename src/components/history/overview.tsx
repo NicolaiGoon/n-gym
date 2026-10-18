@@ -2,27 +2,25 @@ import { StyleSheet, View } from 'react-native';
 
 import { BarChart } from '@/components/charts/bar-chart';
 import { LineChart } from '@/components/charts/line-chart';
+import { MuscleSets } from '@/components/charts/muscle-sets';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getSettings } from '@/db/repo/settings';
-import { bodyWeights, setsPerMuscleGroup, weekStreak, weeklyTotals } from '@/db/stats';
+import { bodyWeights, setsPerMuscle, weekStreak, weeklyTotals } from '@/db/stats';
 import { useDb } from '@/db/use-db';
-import { useTheme } from '@/hooks/use-theme';
 
 const short = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
-/** This week, streak, weekly volume and sets per muscle group. */
+/** This week, streak, weekly volume and sets per muscle. */
 export function Overview() {
-  const theme = useTheme();
   const { unit } = useDb(getSettings);
   const weeks = useDb((db) => weeklyTotals(db, 12));
   const streak = useDb((db) => weekStreak(db));
-  const groups = useDb((db) => setsPerMuscleGroup(db));
+  const groups = useDb((db) => setsPerMuscle(db));
   const weights = useDb(bodyWeights);
   const thisWeek = weeks[weeks.length - 1];
-  const maxSets = Math.max(1, ...groups.map((g) => g.sets));
-
+  
   return (
     <View style={styles.wrapper}>
       <View style={styles.tiles}>
@@ -53,25 +51,11 @@ export function Overview() {
         }))}
       />
 
-      <ThemedText type="smallBold">Working sets, last 7 days</ThemedText>
-      {groups.length === 0 ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          No sets in the last 7 days.
-        </ThemedText>
-      ) : null}
-      {groups.map((g) => (
-        <View key={g.muscleGroup} style={styles.groupRow}>
-          <ThemedText type="small" style={styles.groupName}>
-            {g.muscleGroup[0].toUpperCase() + g.muscleGroup.slice(1)}
-          </ThemedText>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${(g.sets / maxSets) * 100}%`, backgroundColor: theme.tint }]} />
-          </View>
-          <ThemedText type="small" style={styles.count}>
-            {g.sets}
-          </ThemedText>
-        </View>
-      ))}
+      <ThemedText type="smallBold">Working sets per muscle, last 7 days</ThemedText>
+      <MuscleSets totals={groups} empty="No sets in the last 7 days." />
+      <ThemedText type="small" themeColor="textSecondary">
+        Sets count fully for the main muscles of each exercise and as half a set for the muscles that help.
+      </ThemedText>
 
       {weights.length > 1 ? (
         <>
@@ -87,9 +71,4 @@ const styles = StyleSheet.create({
   wrapper: { gap: Spacing.three },
   tiles: { flexDirection: 'row', gap: Spacing.two },
   tile: { flex: 1, padding: Spacing.three, borderRadius: 12, gap: Spacing.half },
-  groupRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  groupName: { width: 80 },
-  track: { flex: 1, height: 8 },
-  fill: { height: 8, borderRadius: 4 },
-  count: { width: 28, textAlign: 'right' },
 });

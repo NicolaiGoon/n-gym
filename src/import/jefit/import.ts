@@ -28,6 +28,19 @@ export interface JefitExerciseRow {
 
 const MAP_KEY = 'jefitExerciseMap';
 
+/** Points remembered Jefit matches at `to` after exercise `from` was merged into it. */
+export function remapJefitExercise(db: Database, from: number, to: number): void {
+  const map = savedMap(db);
+  let changed = false;
+  for (const key of Object.keys(map)) {
+    if (map[key] === from) {
+      map[key] = to;
+      changed = true;
+    }
+  }
+  if (changed) setSetting(db, MAP_KEY, JSON.stringify(map));
+}
+
 /** Jefit body part codes, inferred from the exercises they appear on. */
 const BODYPARTS: Record<number, string> = {
   0: 'abs',
