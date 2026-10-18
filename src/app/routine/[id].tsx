@@ -18,6 +18,7 @@ import {
   setRoutineArchived,
   updateRoutine,
 } from '@/db/repo/routines';
+import { getActiveRoutine, setActiveRoutine } from '@/db/repo/program';
 import { startWorkout } from '@/db/repo/workouts';
 import { plannedSetsPerMuscle } from '@/db/stats';
 import { useDb, write } from '@/db/use-db';
@@ -29,6 +30,7 @@ export default function RoutineScreen() {
   const routine = useDb((db) => getRoutine(db, id));
   const days = useDb((db) => daysQuery(db, id).all());
   const weekly = useDb((db) => plannedSetsPerMuscle(db, id));
+  const isActive = useDb((db) => getActiveRoutine(db)?.id === id);
   const [dialog, setDialog] = useState<Dialog>(null);
 
   if (!routine) return <Page>{null}</Page>;
@@ -50,6 +52,13 @@ export default function RoutineScreen() {
   return (
     <Page>
       <Stack.Screen options={{ title: routine.name }} />
+      {isActive ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          This is your active program. The Workout tab shows which day is next.
+        </ThemedText>
+      ) : (
+        <Button title="Set as active program" onPress={() => write((db) => setActiveRoutine(db, id))} />
+      )}
 
       <ThemedText type="smallBold" themeColor="textSecondary">
         DAYS
@@ -97,6 +106,9 @@ export default function RoutineScreen() {
           variant="secondary"
           onPress={() => write((db) => setRoutineArchived(db, id, !routine.archived))}
         />
+        {isActive ? (
+          <Button title="Stop following" variant="secondary" onPress={() => write((db) => setActiveRoutine(db, null))} />
+        ) : null}
         <Button title="Delete" variant="danger" onPress={confirmDelete} />
       </View>
 
