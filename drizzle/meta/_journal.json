@@ -29,6 +29,13 @@
       "when": 1792225521634,
       "tag": "0003_jefit_import",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792314020861,
+      "tag": "0004_exercise_library",
+      "breakpoints": true
     }
   ]
 }

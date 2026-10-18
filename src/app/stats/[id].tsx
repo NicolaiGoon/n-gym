@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { LineChart } from '@/components/charts/line-chart';
+import { ExerciseImage } from '@/components/exercise-image';
 import { Page } from '@/components/page';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Chips } from '@/components/ui/chips';
 import { Spacing } from '@/constants/theme';
+import { libraryExercise, musclesOf } from '@/data/library';
 import { exerciseHistory } from '@/db/queries';
 import { getExercise } from '@/db/repo/exercises';
 import { getSettings } from '@/db/repo/settings';
@@ -53,14 +55,37 @@ export default function ExerciseStatsScreen() {
   const stalled = useDb((db) => isStalled(exerciseHistory(db, id)));
   const { unit } = useDb(getSettings);
   const [metric, setMetric] = useState<Metric>('oneRepMax');
+  const [showSteps, setShowSteps] = useState(false);
 
   if (!exercise) return <Page>{null}</Page>;
   const records = exerciseRecords(sessions);
   const round = (v: number) => Math.round(v * 10) / 10;
+  const library = libraryExercise(exercise.libraryId);
+  const muscles = musclesOf(exercise);
 
   return (
     <Page>
       <Stack.Screen options={{ title: exercise.name }} />
+      {library?.image ? <ExerciseImage libraryId={exercise.libraryId} size="wide" /> : null}
+      {muscles.primary.length ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Works {muscles.primary.join(', ')}
+          {muscles.secondary.length ? `, helped by ${muscles.secondary.join(', ')}` : ''}.
+        </ThemedText>
+      ) : null}
+      {library?.instructions.length ? (
+        showSteps ? (
+          <View style={styles.steps}>
+            {library.instructions.map((step, i) => (
+              <ThemedText key={i} type="small">
+                {i + 1}. {step}
+              </ThemedText>
+            ))}
+          </View>
+        ) : (
+          <Button title="How to do it" variant="secondary" onPress={() => setShowSteps(true)} />
+        )
+      ) : null}
       {exercise.notes ? (
         <ThemedText type="small" themeColor="textSecondary">
           {exercise.notes}
@@ -140,6 +165,7 @@ export default function ExerciseStatsScreen() {
 }
 
 const styles = StyleSheet.create({
+  steps: { gap: Spacing.one },
   records: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   record: { flexBasis: '45%', flexGrow: 1, padding: Spacing.three, borderRadius: 12, gap: Spacing.half },
   session: { padding: Spacing.three, borderRadius: 12, gap: Spacing.one },

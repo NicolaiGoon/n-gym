@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 
+import { ExerciseImage } from '@/components/exercise-image';
 import { ThemedText } from '@/components/themed-text';
 import { Chips } from '@/components/ui/chips';
 import { ListRow } from '@/components/ui/list-row';
@@ -35,7 +36,10 @@ export function ExerciseList({ onSelect, header }: { onSelect: (exercise: Exerci
       renderItem={({ item }) => (
         <ListRow
           title={item.name}
-          subtitle={[item.muscleGroup, item.equipment].filter(Boolean).join(' · ')}
+          subtitle={[item.primaryMuscles.length ? item.primaryMuscles.join(', ') : item.muscleGroup, item.equipment]
+            .filter(Boolean)
+            .join(' · ')}
+          leading={<ExerciseImage libraryId={item.libraryId} size={56} />}
           onPress={() => onSelect(item)}
         />
       )}

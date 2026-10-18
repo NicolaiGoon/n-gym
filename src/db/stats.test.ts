@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { syncLibrary } from '@/data/library';
+
 import { exercisesQuery } from './repo/exercises';
 import { addDay, addExerciseToDay, createRoutine } from './repo/routines';
 import { addExerciseToWorkout, finishWorkout, logSet, startWorkout, workoutDetail } from './repo/workouts';
@@ -8,6 +10,8 @@ import {
   exerciseRecords,
   exerciseSessions,
   historyList,
+  plannedSetsPerMuscle,
+  setsPerMuscle,
   setsPerMuscleGroup,
   startOfWeek,
   weekStreak,
@@ -102,6 +106,35 @@ describe('weekly stats', () => {
     session(2, [[60, 5]]);
     session(12, [[60, 5], [60, 5]]);
     expect(setsPerMuscleGroup(db, on(14))).toEqual([{ muscleGroup: 'chest', sets: 2 }]);
+  });
+
+  it('counts sets per muscle, half for helping muscles, falling back to the muscle group', () => {
+    session(12, [[60, 5], [60, 5]]);
+    // Without library muscles, chest falls back to chest with triceps and shoulders helping.
+    expect(setsPerMuscle(db, on(14))).toEqual([
+      { muscle: 'chest', sets: 2 },
+      { muscle: 'shoulders', sets: 1 },
+      { muscle: 'triceps', sets: 1 },
+    ]);
+    syncLibrary(db);
+    // The library's bench press works the chest, helped by shoulders and triceps.
+    expect(setsPerMuscle(db, on(14))[0]).toEqual({ muscle: 'chest', sets: 2 });
+  });
+
+  it('plans weekly sets per muscle for a routine', () => {
+    const routineId = createRoutine(db, 'Upper');
+    const day = addDay(db, routineId, 'Upper A');
+    addExerciseToDay(db, day, bench);
+    addExerciseToDay(db, day, pullUp);
+    // Each slot starts as double progression with 3 sets.
+    expect(plannedSetsPerMuscle(db, routineId)).toEqual([
+      { muscle: 'chest', sets: 3 },
+      { muscle: 'lats', sets: 3 },
+      { muscle: 'shoulders', sets: 1.5 },
+      { muscle: 'triceps', sets: 1.5 },
+      { muscle: 'biceps', sets: 1.5 },
+      { muscle: 'middle back', sets: 1.5 },
+    ]);
   });
 });
 
