@@ -8,7 +8,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { exercisesQuery, MUSCLE_GROUPS, type Exercise } from '@/db/repo/exercises';
-import { useDb } from '@/db/use-db';
+import { useCachedDb } from '@/db/use-db';
 
 const GROUP_OPTIONS = MUSCLE_GROUPS.map((g) => ({ value: g, label: g[0].toUpperCase() + g.slice(1) }));
 
@@ -16,13 +16,18 @@ const GROUP_OPTIONS = MUSCLE_GROUPS.map((g) => ({ value: g, label: g[0].toUpperC
 export function ExerciseList({ onSelect, header }: { onSelect: (exercise: Exercise) => void; header?: React.ReactElement }) {
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<string | null>(null);
-  const exercises = useDb((db) => exercisesQuery(db, { query, muscleGroup: group }).all());
+  const exercises = useCachedDb(`exercises:${group}:${query}`, (db) =>
+    exercisesQuery(db, { query, muscleGroup: group }).all(),
+  );
 
   return (
     <FlatList
       data={exercises}
       keyExtractor={(e) => String(e.id)}
       keyboardShouldPersistTaps="handled"
+      initialNumToRender={12}
+      windowSize={7}
+      removeClippedSubviews
       contentContainerStyle={styles.list}
       ListHeaderComponent={
         <>

@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
@@ -87,6 +88,7 @@ export function ExerciseCard({
       }),
     );
     if (ok) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setRpe('');
       startRest(warmup ? Math.min(60, item.restSeconds) : item.restSeconds);
       // Move on to the next planned set once a working set is logged.

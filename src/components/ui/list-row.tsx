@@ -28,7 +28,11 @@ export function ListRow({
       disabled={!onPress}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement, opacity: dimmed ? 0.6 : 1 },
+        {
+          backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement,
+          opacity: dimmed ? 0.6 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        },
       ]}>
       {leading}
       <View style={styles.text}>

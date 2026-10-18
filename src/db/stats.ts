@@ -258,51 +258,31 @@ export interface HistoryRow {
   volume: number;
 }
 
-/** Finished workouts, newest first, with totals for the list. */
-export function historyList(db: Database, limit = 200): HistoryRow[] {
-  const list = db
+/** Finished workouts, newest first, with totals for the list. `offset` skips that many, for paging. */
+export function historyList(db: Database, limit = 200, offset = 0): HistoryRow[] {
+  const working = sql`${workoutSets.isWarmup} = 0`;
+  return db
     .select({
       id: workouts.id,
       startedAt: workouts.startedAt,
       finishedAt: workouts.finishedAt,
       dayName: routineDays.name,
       notes: workouts.notes,
+      exerciseCount: sql<number>`count(distinct ${workoutSets.workoutExerciseId})`,
+      setCount: sql<number>`coalesce(sum(case when ${working} then 1 else 0 end), 0)`,
+      volume: sql<number>`coalesce(sum(case when ${working} then ${workoutSets.weight} * ${workoutSets.reps} else 0 end), 0)`,
     })
     .from(workouts)
     .leftJoin(routineDays, eq(workouts.dayId, routineDays.id))
+    .leftJoin(workoutSets, eq(workoutSets.workoutId, workouts.id))
     .where(isNotNull(workouts.finishedAt))
+    .groupBy(workouts.id)
     .orderBy(desc(workouts.startedAt))
     .limit(limit)
+    .offset(offset)
     .all();
-  if (list.length === 0) return [];
-
-  const oldest = list[list.length - 1].startedAt;
-  const sets = db
-    .select({
-      workoutId: workoutSets.workoutId,
-      workoutExerciseId: workoutSets.workoutExerciseId,
-      weight: workoutSets.weight,
-      reps: workoutSets.reps,
-      isWarmup: workoutSets.isWarmup,
-    })
-    .from(workoutSets)
-    .innerJoin(workouts, eq(workoutSets.workoutId, workouts.id))
-    .where(gte(workouts.startedAt, oldest))
-    .all();
-
-  return list.map((w) => {
-    const own = sets.filter((s) => s.workoutId === w.id);
-    const working = own.filter((s) => !s.isWarmup);
-    return {
-      ...w,
-      exerciseCount: new Set(own.map((s) => s.workoutExerciseId)).size,
-      setCount: working.length,
-      volume: working.reduce((sum, s) => sum + s.weight * s.reps, 0),
-    };
-  });
 }
 
-/** Days (local yyyy-mm-dd) in a month that have a finished workout, mapped to the workout ids. */
 export function workoutDaysInMonth(db: Database, year: number, month: number): Map<string, number[]> {
   const from = new Date(year, month, 1);
   const to = new Date(year, month + 1, 1);
