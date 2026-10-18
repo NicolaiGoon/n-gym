@@ -10,18 +10,27 @@ import { ThemedView } from '@/components/themed-view';
 import { NameDialog } from '@/components/ui/name-dialog';
 import { Spacing } from '@/constants/theme';
 import { deloadStatus, endDeload, startDeloadWeek } from '@/db/repo/deload';
+import { getActiveRoutine, programPlan } from '@/db/repo/program';
 import { createRoutine, routinesQuery } from '@/db/repo/routines';
 import { getActiveWorkout, startWorkout } from '@/db/repo/workouts';
 import { useDb, write } from '@/db/use-db';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function WorkoutScreen() {
+  const theme = useTheme();
   const routines = useDb((db) => routinesQuery(db).all());
   const active = useDb(getActiveWorkout);
   const deload = useDb((db) => deloadStatus(db));
+  const program = useDb(getActiveRoutine);
+  const plan = useDb((db) => (program ? programPlan(db, program.id) : null));
   const [creating, setCreating] = useState(false);
 
   const startEmpty = () => {
     if (write((db) => startWorkout(db, null))) router.push('/workout');
+  };
+
+  const startDay = (dayId: number) => {
+    if (write((db) => startWorkout(db, dayId))) router.push('/workout');
   };
 
   return (
@@ -59,6 +68,50 @@ export default function WorkoutScreen() {
         <Button title="New routine" onPress={() => setCreating(true)} style={styles.grow} />
         <Button title="Settings" variant="secondary" onPress={() => router.push('/settings')} />
       </View>
+      {program && plan ? (
+        <View style={[styles.banner, styles.program, { borderColor: theme.backgroundSelected }]}>
+          <ThemedText type="small" themeColor="textSecondary">
+            ACTIVE PROGRAM
+          </ThemedText>
+          <ThemedText
+            type="smallBold"
+            onPress={() => router.push({ pathname: '/routine/[id]', params: { id: program.id } })}>
+            {program.name} ›
+          </ThemedText>
+          {plan.days.length === 0 ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              This program has no days yet.
+            </ThemedText>
+          ) : null}
+          {plan.days.map((day) => {
+            const next = day.id === plan.nextDayId;
+            return (
+              <View key={day.id} style={styles.dayRow}>
+                <View style={styles.grow}>
+                  <ThemedText type={next ? 'smallBold' : 'small'}>
+                    {day.name}
+                    {next ? '  ·  Next' : ''}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {day.exerciseCount === 0
+                      ? 'No exercises'
+                      : day.lastDone
+                        ? `Last done ${day.lastDone.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
+                        : 'Not done yet'}
+                  </ThemedText>
+                </View>
+                {day.exerciseCount > 0 && !active ? (
+                  <Button title="Start" variant={next ? 'primary' : 'secondary'} onPress={() => startDay(day.id)} />
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : routines.length ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Open a routine and set it as your active program to see which day is next here.
+        </ThemedText>
+      ) : null}
       <FlatList
         data={routines}
         keyExtractor={(r) => String(r.id)}
@@ -71,7 +124,7 @@ export default function WorkoutScreen() {
         renderItem={({ item }) => (
           <ListRow
             title={item.name}
-            subtitle={item.archived ? 'Archived' : item.notes}
+            subtitle={item.archived ? 'Archived' : item.id === program?.id ? 'Active program' : item.notes}
             dimmed={item.archived}
             onPress={() => router.push({ pathname: '/routine/[id]', params: { id: item.id } })}
           />
@@ -99,5 +152,7 @@ const styles = StyleSheet.create({
   banner: { borderRadius: 12, padding: Spacing.three, gap: Spacing.two },
   actions: { flexDirection: 'row', gap: Spacing.two },
   grow: { flex: 1 },
+  program: { borderWidth: 1 },
+  dayRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   list: { gap: Spacing.two },
 });
