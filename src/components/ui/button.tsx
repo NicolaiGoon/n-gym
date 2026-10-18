@@ -21,7 +21,11 @@ export function Button({
       accessibilityRole="button"
       style={(state) => [
         styles.button,
-        { backgroundColor: background, opacity: rest.disabled ? 0.5 : state.pressed ? 0.8 : 1 },
+        {
+          backgroundColor: background,
+          opacity: rest.disabled ? 0.5 : state.pressed ? 0.85 : 1,
+          transform: [{ scale: state.pressed && !rest.disabled ? 0.97 : 1 }],
+        },
         typeof style === 'function' ? style(state) : style,
       ]}
       {...rest}>

@@ -8,17 +8,17 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getSettings } from '@/db/repo/settings';
 import { bodyWeights, setsPerMuscle, weekStreak, weeklyTotals } from '@/db/stats';
-import { useDb } from '@/db/use-db';
+import { useCachedDb, useDb } from '@/db/use-db';
 
 const short = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 /** This week, streak, weekly volume and sets per muscle. */
 export function Overview() {
   const { unit } = useDb(getSettings);
-  const weeks = useDb((db) => weeklyTotals(db, 12));
-  const streak = useDb((db) => weekStreak(db));
-  const groups = useDb((db) => setsPerMuscle(db));
-  const weights = useDb(bodyWeights);
+  const weeks = useCachedDb('weeklyTotals:12', (db) => weeklyTotals(db, 12));
+  const streak = useCachedDb('weekStreak', (db) => weekStreak(db));
+  const groups = useCachedDb('setsPerMuscle', (db) => setsPerMuscle(db));
+  const weights = useCachedDb('bodyWeights', bodyWeights);
   const thisWeek = weeks[weeks.length - 1];
   
   return (

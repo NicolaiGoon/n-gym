@@ -21,7 +21,7 @@ import {
 import { getActiveRoutine, setActiveRoutine } from '@/db/repo/program';
 import { startWorkout } from '@/db/repo/workouts';
 import { plannedSetsPerMuscle } from '@/db/stats';
-import { useDb, write } from '@/db/use-db';
+import { useCachedDb, useDb, write } from '@/db/use-db';
 
 type Dialog = { kind: 'rename' } | { kind: 'add-day' } | null;
 
@@ -29,7 +29,7 @@ export default function RoutineScreen() {
   const id = Number(useLocalSearchParams<{ id: string }>().id);
   const routine = useDb((db) => getRoutine(db, id));
   const days = useDb((db) => daysQuery(db, id).all());
-  const weekly = useDb((db) => plannedSetsPerMuscle(db, id));
+  const weekly = useCachedDb(`plannedSets:${id}`, (db) => plannedSetsPerMuscle(db, id));
   const isActive = useDb((db) => getActiveRoutine(db)?.id === id);
   const [dialog, setDialog] = useState<Dialog>(null);
 

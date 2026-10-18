@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
 
 import { Page } from '@/components/page';
 import { ThemedText } from '@/components/themed-text';
@@ -18,7 +18,8 @@ import { applyImport, previewImport, type ImportResult } from '@/import/jefit/im
 
 type Filter = 'new' | 'all';
 
-const formatDate = (date: Date | null) => (date ? date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '–');
+const formatDate = (date: Date | null) =>
+  date ? date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '–';
 
 /** Preview of a Jefit export, with exercise matching, then the import itself. */
 export default function ImportJefitScreen() {
@@ -49,45 +50,59 @@ export default function ImportJefitScreen() {
     Alert.alert(
       'Import complete',
       `Added ${r.workouts} workouts (${r.sets} sets), ${r.exercisesCreated} exercises, ${r.routines} routines and ${r.measurements} body measurements.${
-        r.exercisesCreated ? ' To give the new exercises pictures and muscles, link them in Settings → Link to library.' : ''
+        r.exercisesCreated
+          ? ' To give the new exercises pictures and muscles, link them in Settings → Link to library.'
+          : ''
       }`,
     );
     router.back();
   };
 
   return (
-    <Page>
-      <ThemedView type="backgroundElement" style={styles.summary}>
-        <ThemedText type="smallBold">
-          {preview.workouts} workouts, {preview.sets.toLocaleString()} sets
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {preview.workouts ? `${formatDate(preview.first)} to ${formatDate(preview.last)}. ` : ''}
-          {preview.workoutsAlreadyImported ? `${preview.workoutsAlreadyImported} already imported, skipped. ` : ''}
-          Also {preview.routines} routines, {preview.measurements} body measurements and {preview.notes} exercise notes.
-        </ThemedText>
-        {data.massUnit !== unit ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            Weights are converted from {data.massUnit} to {unit}.
-          </ThemedText>
-        ) : null}
-      </ThemedView>
+    <Page scroll={false}>
+      <FlatList
+        data={shown}
+        keyExtractor={(row) => row.key}
+        contentContainerStyle={styles.list}
+        initialNumToRender={12}
+        windowSize={7}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <ThemedView type="backgroundElement" style={styles.summary}>
+              <ThemedText type="smallBold">
+                {preview.workouts} workouts, {preview.sets.toLocaleString()} sets
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {preview.workouts ? `${formatDate(preview.first)} to ${formatDate(preview.last)}. ` : ''}
+                {preview.workoutsAlreadyImported
+                  ? `${preview.workoutsAlreadyImported} already imported, skipped. `
+                  : ''}
+                Also {preview.routines} routines, {preview.measurements} body measurements and {preview.notes} exercise
+                notes.
+              </ThemedText>
+              {data.massUnit !== unit ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  Weights are converted from {data.massUnit} to {unit}.
+                </ThemedText>
+              ) : null}
+            </ThemedView>
 
-      <ThemedText type="smallBold">Exercises</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {preview.newExercises} will be added to your library, the rest are matched to exercises you have. Tap one to match
-        it to a different exercise. Your choices are remembered for the next import.
-      </ThemedText>
-      <Chips
-        options={[
-          { value: 'new', label: `New (${preview.newExercises})` },
-          { value: 'all', label: `All (${rows.length})` },
-        ]}
-        value={filter}
-        onChange={(value) => value && setFilter(value)}
-      />
-      <View style={styles.list}>
-        {shown.map((row) => {
+            <ThemedText type="smallBold">Exercises</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {preview.newExercises} will be added to your library, the rest are matched to exercises you have. Tap one
+              to match it to a different exercise. Your choices are remembered for the next import.
+            </ThemedText>
+            <Chips
+              options={[
+                { value: 'new', label: `New (${preview.newExercises})` },
+                { value: 'all', label: `All (${rows.length})` },
+              ]}
+              value={filter}
+              onChange={(value) => value && setFilter(value)}
+            />
+          </View>
+        }
+        renderItem={({ item: row }) => {
           const choice = choices[row.key];
           const target = choice.type === 'existing' ? getExercise(db, choice.exerciseId)?.name : null;
           return (
@@ -97,7 +112,12 @@ export default function ImportJefitScreen() {
               subtitle={`${row.sessions} session${row.sessions === 1 ? '' : 's'} · ${
                 target ? `→ ${target}` : `→ new (${row.muscleGroup}${row.equipment ? `, ${row.equipment}` : ''})`
               }`}
-              onPress={() => router.push({ pathname: '/pick-exercise', params: { jefitKey: row.key } })}
+              onPress={() =>
+                router.push({
+                  pathname: '/pick-exercise',
+                  params: { jefitKey: row.key },
+                })
+              }
               trailing={
                 choice.type === 'existing' ? (
                   <Button title="New" variant="secondary" onPress={() => setJefitChoice(row.key, { type: 'new' })} />
@@ -105,33 +125,44 @@ export default function ImportJefitScreen() {
               }
             />
           );
-        })}
-      </View>
-
-      {importing ? (
-        <View style={styles.importing}>
-          <ActivityIndicator />
-          <ThemedText type="small" themeColor="textSecondary">
-            Importing…
-          </ThemedText>
-        </View>
-      ) : (
-        <Button
-          title={nothingNew ? 'Nothing new to import' : 'Import'}
-          disabled={nothingNew}
-          onPress={() => {
-            // The import blocks the app while it runs, so let the progress indicator draw first.
-            setImporting(true);
-            setTimeout(runImport, 50);
-          }}
-        />
-      )}
+        }}
+        ListFooterComponent={
+          <View style={styles.footer}>
+            {importing ? (
+              <View style={styles.importing}>
+                <ActivityIndicator />
+                <ThemedText type="small" themeColor="textSecondary">
+                  Importing…
+                </ThemedText>
+              </View>
+            ) : (
+              <Button
+                title={nothingNew ? 'Nothing new to import' : 'Import'}
+                disabled={nothingNew}
+                onPress={() => {
+                  // The import blocks the app while it runs, so let the progress indicator draw first.
+                  setImporting(true);
+                  setTimeout(runImport, 50);
+                }}
+              />
+            )}
+          </View>
+        }
+      />
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
   summary: { borderRadius: 12, padding: Spacing.three, gap: Spacing.one },
-  list: { gap: Spacing.two },
-  importing: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, padding: Spacing.three },
+  list: { gap: Spacing.two, paddingBottom: Spacing.four },
+  header: { gap: Spacing.three, marginBottom: Spacing.one },
+  footer: { marginTop: Spacing.two },
+  importing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
 });
