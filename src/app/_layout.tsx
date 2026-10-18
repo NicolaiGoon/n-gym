@@ -8,7 +8,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <DatabaseProvider>
-        <Stack>
+        <Stack screenOptions={{ animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
           <Stack.Screen name="coach-actions" options={{ title: 'Coach actions' }} />
