@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Chips } from '@/components/ui/chips';
 import { NumberField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
+import { unlinkedExercises } from '@/data/library';
 import { db } from '@/db/client';
 import { getDeloadEvery, setDeloadEvery } from '@/db/repo/deload';
 import { getSettings, updateSettings, type WeightUnit } from '@/db/repo/settings';
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
   const [increment, setIncrement] = useState(String(initial.defaultIncrement));
   const [deloadEvery, setDeloadEveryText] = useState(() => String(getDeloadEvery(db)));
   const autoBackup = useDb(() => autoBackupStatus());
+  const unlinked = useDb((db) => unlinkedExercises(db).length);
 
   const save = () => {
     const ok = write((db) => {
@@ -123,6 +125,16 @@ export default function SettingsScreen() {
         a preview first, and importing the same file again adds nothing twice.
       </ThemedText>
       <Button title="Choose Jefit export" variant="secondary" onPress={importJefit} />
+
+      <ThemedText type="smallBold" style={styles.section}>
+        Exercise library
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {unlinked
+          ? `${unlinked} of your exercises, such as ones from Jefit, have no picture or muscles yet. Link them to the library to include them in the weekly sets per muscle.`
+          : 'All your exercises are linked to the library.'}
+      </ThemedText>
+      {unlinked ? <Button title="Link to library" variant="secondary" onPress={() => router.push('/link-exercises')} /> : null}
 
       <ThemedText type="smallBold" style={styles.section}>
         Desktop coach

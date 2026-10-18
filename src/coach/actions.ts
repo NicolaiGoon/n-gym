@@ -19,7 +19,7 @@ import {
 import { getSettings } from '@/db/repo/settings';
 import { suggestFor } from '@/db/repo/workouts';
 import { exercises, routineDays, routines } from '@/db/schema';
-import { exerciseRecords, exerciseSessions, historyList, setsPerMuscleGroup, weeklyTotals, weekStreak } from '@/db/stats';
+import { exerciseRecords, exerciseSessions, historyList, setsPerMuscle, setsPerMuscleGroup, weeklyTotals, weekStreak } from '@/db/stats';
 import type { Database } from '@/db/types';
 import { defaultRule, describeRule, isStalled, validateRule, type ProgressionRule } from '@/progression';
 
@@ -196,7 +196,8 @@ const listExercises: ReadAction = {
   kind: 'read',
   definition: {
     name: 'list_exercises',
-    description: 'Lists exercises in the library, optionally filtered by name or muscle group.',
+    description:
+      'Lists exercises, optionally filtered by name or muscle group. Exercises the user has trained or planned come first; at most 60 are returned, so filter to find others.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -205,10 +206,24 @@ const listExercises: ReadAction = {
       },
     },
   },
-  run: (db, input: { query?: string; muscleGroup?: string }) =>
-    exercisesQuery(db, input)
+  run: (db, input: { query?: string; muscleGroup?: string }) => {
+    const used = new Set(
+      db
+        .all<{ id: number }>(sql`select exercise_id as id from workout_sets union select exercise_id from routine_exercises`)
+        .map((r) => r.id),
+    );
+    return exercisesQuery(db, input)
       .all()
-      .map((e) => ({ name: e.name, muscleGroup: e.muscleGroup, equipment: e.equipment, increment: e.defaultIncrement })),
+      .sort((a, b) => Number(used.has(b.id)) - Number(used.has(a.id)))
+      .slice(0, 60)
+      .map((e) => ({
+        name: e.name,
+        muscleGroup: e.muscleGroup,
+        muscles: e.primaryMuscles,
+        equipment: e.equipment,
+        increment: e.defaultIncrement,
+      }));
+  },
 };
 
 const listRoutines: ReadAction = {
@@ -328,6 +343,7 @@ const getTrainingSummary: ReadAction = {
       weeks: weeklyTotals(db, 8).map((w) => ({ weekStart: isoDate(w.weekStart), workouts: w.workouts, volume: round1(w.volume) })),
       weekStreak: weekStreak(db),
       setsPerMuscleGroupLast7Days: setsPerMuscleGroup(db),
+      setsPerMuscleLast7Days: setsPerMuscle(db),
       deload: {
         active: deload.active,
         until: deload.until && isoDate(deload.until),
