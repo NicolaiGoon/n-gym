@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 
 import { Page } from '@/components/page';
 import { ThemedText } from '@/components/themed-text';
@@ -24,6 +24,7 @@ const formatDate = (date: Date | null) => (date ? date.toLocaleDateString(undefi
 export default function ImportJefitScreen() {
   const pending = usePendingJefitImport();
   const [filter, setFilter] = useState<Filter>('new');
+  const [importing, setImporting] = useState(false);
 
   if (!pending) {
     return (
@@ -40,7 +41,9 @@ export default function ImportJefitScreen() {
 
   const runImport = () => {
     let result: ImportResult | null = null;
-    if (!write((db) => (result = applyImport(db, data, choices))) || !result) return;
+    const ok = write((db) => (result = applyImport(db, data, choices)));
+    setImporting(false);
+    if (!ok || !result) return;
     const r: ImportResult = result;
     clearJefitImport();
     Alert.alert(
@@ -103,11 +106,24 @@ export default function ImportJefitScreen() {
         })}
       </View>
 
-      <Button
-        title={nothingNew ? 'Nothing new to import' : 'Import'}
-        disabled={nothingNew}
-        onPress={runImport}
-      />
+      {importing ? (
+        <View style={styles.importing}>
+          <ActivityIndicator />
+          <ThemedText type="small" themeColor="textSecondary">
+            Importing…
+          </ThemedText>
+        </View>
+      ) : (
+        <Button
+          title={nothingNew ? 'Nothing new to import' : 'Import'}
+          disabled={nothingNew}
+          onPress={() => {
+            // The import blocks the app while it runs, so let the progress indicator draw first.
+            setImporting(true);
+            setTimeout(runImport, 50);
+          }}
+        />
+      )}
     </Page>
   );
 }
@@ -115,4 +131,5 @@ export default function ImportJefitScreen() {
 const styles = StyleSheet.create({
   summary: { borderRadius: 12, padding: Spacing.three, gap: Spacing.one },
   list: { gap: Spacing.two },
+  importing: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.two, padding: Spacing.three },
 });

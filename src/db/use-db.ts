@@ -7,10 +7,18 @@ import type { Database } from './types';
 
 let version = 0;
 const listeners = new Set<() => void>();
+let scheduled = false;
 
+// SQLite reports every changed row, so a big write such as an import sends thousands of events.
+// Re-rendering on each one froze the app, so screens refresh once after a burst instead.
 addDatabaseChangeListener(() => {
-  version++;
-  listeners.forEach((listener) => listener());
+  if (scheduled) return;
+  scheduled = true;
+  setTimeout(() => {
+    scheduled = false;
+    version++;
+    listeners.forEach((listener) => listener());
+  }, 0);
 });
 
 function subscribe(listener: () => void) {
