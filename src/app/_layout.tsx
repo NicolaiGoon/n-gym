@@ -14,6 +14,7 @@ export default function RootLayout() {
           <Stack.Screen name="coach-actions" options={{ title: 'Coach actions' }} />
           <Stack.Screen name="import-changes" options={{ title: 'Coach changes' }} />
           <Stack.Screen name="import-jefit" options={{ title: 'Import from Jefit' }} />
+          <Stack.Screen name="link-exercises" options={{ title: 'Link to library' }} />
           <Stack.Screen name="pick-exercise" options={{ title: 'Choose exercise', presentation: 'modal' }} />
           <Stack.Screen name="finish" options={{ title: 'Finish workout' }} />
           <Stack.Screen name="summary/[id]" options={{ title: 'Summary' }} />

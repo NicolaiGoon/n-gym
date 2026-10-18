@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 
 import {
   bodyMeasurements,
@@ -180,7 +180,11 @@ export function restoreMerge(db: Database, backup: Backup): MergeResult {
       const existing = tx
         .select({ id: exercises.id })
         .from(exercises)
-        .where(sql`lower(${exercises.name}) = lower(${row.name})`)
+        .where(
+          row.libraryId
+            ? or(eq(exercises.libraryId, row.libraryId), sql`lower(${exercises.name}) = lower(${row.name})`)
+            : sql`lower(${exercises.name}) = lower(${row.name})`,
+        )
         .get();
       if (existing) {
         exerciseIds.set(id, existing.id);

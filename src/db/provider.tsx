@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 
 import { db } from './client';
 import { seedIfEmpty } from './seed';
+import { syncLibrary } from '@/data/library';
 
 /** Runs migrations and seeding before rendering the app. */
 export function DatabaseProvider({ children }: { children: ReactNode }) {
@@ -20,6 +21,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     if (!success) return;
     seedIfEmpty(db)
       .then(() => {
+        syncLibrary(db);
         setSeeded(true);
         runAutoBackupIfDue();
       })

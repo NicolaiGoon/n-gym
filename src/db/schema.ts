@@ -21,6 +21,12 @@ export const exercises = sqliteTable('exercises', {
   source: text('source').notNull().default('builtin'),
   /** Free-text notes, e.g. setup cues. */
   notes: text('notes'),
+  /** Id in the bundled exercise library (src/data/exercise-library.json), for its picture and instructions. */
+  libraryId: text('library_id').unique(),
+  /** Muscles worked, e.g. ["quadriceps"]. Empty means unknown, and stats fall back to the muscle group. */
+  primaryMuscles: text('primary_muscles', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
+  /** Muscles that help, counted as half a set each in weekly stats. */
+  secondaryMuscles: text('secondary_muscles', { mode: 'json' }).$type<string[]>().notNull().default(sql`'[]'`),
   createdAt: createdAt(),
 });
 
