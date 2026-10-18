@@ -1,6 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 
 import { deloadStatus } from '@/db/repo/deload';
+import { getActiveRoutine, programPlan } from '@/db/repo/program';
 import { getSettings } from '@/db/repo/settings';
 import { routines } from '@/db/schema';
 import { historyList, weeklyTotals, weekStreak } from '@/db/stats';
@@ -12,6 +13,9 @@ export function buildSystemPrompt(db: Database, now = new Date()): string {
   const weeks = weeklyTotals(db, 4, now);
   const last = historyList(db, 1)[0];
   const deload = deloadStatus(db, now);
+  const program = getActiveRoutine(db);
+  const plan = program ? programPlan(db, program.id) : null;
+  const nextDay = plan?.days.find((d) => d.id === plan.nextDayId);
   const active = db.select({ id: routines.id, name: routines.name }).from(routines).where(eq(routines.archived, false)).orderBy(asc(routines.name)).all();
 
   const facts = [
@@ -20,6 +24,9 @@ export function buildSystemPrompt(db: Database, now = new Date()): string {
     `Workouts in the last 4 weeks, oldest first: ${weeks.map((w) => w.workouts).join(', ')}. Week streak: ${weekStreak(db, now)}.`,
     last ? `Last workout: ${last.startedAt.toDateString()}${last.dayName ? ` (${last.dayName})` : ''}.` : 'No workouts logged yet.',
     active.length ? `Routines: ${active.map((r) => `${r.name} (id ${r.id})`).join(', ')}.` : 'No routines yet.',
+    program
+      ? `Active program: ${program.name} (id ${program.id})${nextDay ? `; next day is ${nextDay.name}` : ''}.`
+      : 'No active program is set.',
     deload.active ? `A deload week is running until ${deload.until!.toDateString()}.` : '',
     deload.stalled.length ? `Stalled lifts: ${deload.stalled.map((e) => e.name).join(', ')}.` : '',
   ].filter(Boolean);
